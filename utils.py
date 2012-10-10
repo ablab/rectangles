@@ -41,8 +41,8 @@ def seq_join(seq1, seq2): # join two sequences, prioritize ACGT over N
     return seq
 
 def erf(x): # from http://stackoverflow.com/a/457805/92396
-    return 0
-    #return math.erf(x)
+    #return 0
+    return math.erf(x)
 
 def rc(seq):
     return seq.translate('*****************************************************************TVGHEFCDIJMLKNOPQYSAUBWXRZ[\]^_`tvghefcdijmlknopqysaubwxrz*************************************************************************************************************************************')[::-1]
