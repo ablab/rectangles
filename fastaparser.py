@@ -1,6 +1,5 @@
 import os
 import gzip
-import itertools
 
 def get_lengths_from_fastafile(filename):
     """

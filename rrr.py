@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
         exit(1)
 
-    if len(args) != 0:
+    if not args:
         parser.print_help()
         sys.exit(0)
 
