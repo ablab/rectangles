@@ -21,8 +21,6 @@ def makelogger(logfilename):
   logger.addHandler(fh)
   logger.addHandler(ch)
 
-
-
 def parse_ref_info(fin):
   ref_info = dict()
   for line in fin:
