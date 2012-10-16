@@ -97,40 +97,31 @@ def resolve(input_path, output_path, test_utils, genome):
             continue
         bgraph.build_missing_rectangles(ingraph.K, rs)
         bgraph.condense()
-        #print "forward", bgraph.expand()
-        #bgraph.condense()
-        #print "backward", bgraph.reverse_expand()
         outgraph = bgraph.project(output_path)
         thisN50 = outgraph.stats(d)
-        #outgraph.check() # TODO: check error
         if thisN50 > maxN50:
             maxN50 = thisN50
             maxgraph = outgraph
             maxbgraph = bgraph
             maxthreshold = threshold
 
-    maxgraph.fasta(open(os.path.join(output_path, 'rectangles.fasta'), 'w'))
-    maxgraph.save(os.path.join(output_path, 'rectangles'))
-    maxbgraph.save(output_path, ingraph.K)
+    #maxgraph.fasta(open(os.path.join(output_path, 'rectangles_before_graph_simplifications.fasta'), 'w'))
+    #maxgraph.save(os.path.join(output_path, 'rectangles'))
+    #maxbgraph.save(output_path, ingraph.K)
     maxbgraph.check_tips(ingraph.K)
 
     outgraph = maxbgraph.project(output_path)
-    outgraph.fasta(open(os.path.join(output_path, "after_tips.fasta"), "w"))
-    #maxbgraph.expand()
-    #maxbgraph.condense()
-    maxbgraph.find_everything_about_edges([6452, 6454, 6462, 5153, 4342, 3900], ingraph.K)
-    maxbgraph.find_everything_about_edges([4697, 4027, 4562, 4502], ingraph.K)
+    #outgraph.fasta(open(os.path.join(output_path, "after_tips.fasta"), "w"))
     #outgraph = maxbgraph.project(output_path)
     #outgraph.fasta(open(os.path.join(output_path,"after_tips_expand.fasta"),"w"))
     maxbgraph.delete_loops(ingraph.K, 500, 10)
     maxbgraph.condense()
     outgraph = maxbgraph.project(output_path)
-    outgraph.fasta(open(os.path.join(output_path, "after_tips_expand_delete_loops.fasta"), "w"))
+    outgraph.fasta(open(os.path.join(output_path, "rectangles.fasta"), "w"))
 
     if genome:
         check_diags.check(genome, maxbgraph, maxgraph.K, open(os.path.join(output_path, "check_log.txt"), "w"),
             test_utils)
-    #    maxbgraph.diag_output(output_path, maxgraph.K)
 
     maxgraph.stats(d)
     logger.info("Best Threshold = %d" % maxthreshold)
@@ -145,13 +136,13 @@ if __name__ == '__main__':
     parser.add_option("-g", "--genome", dest="genome", help="File with genome")
     parser.add_option("-s", "--saves", dest="saves_dir", help="Name of directory with saves")
     parser.add_option("-o", "--out", dest="out_dir", help="output folder", default="out")
-    #parser.add_option("-e", "--etalon-distance", dest="etalon_distance", help = "File with etalon distance", default = None)
     parser.add_option("-d", "--debug-logger", dest="debug_logger", help="File for debug logger", default="debug_log.txt")
     parser.add_option("-k", "--k", type=int, dest="k", help="k")
     parser.add_option("-D", "--D", type=int, dest="d", help="d")
     (options, args) = parser.parse_args()
     if not os.path.exists(options.out_dir):
         os.mkdir(options.out_dir)
+    
     if options.genome and not options.saves_dir:
         if not options.k or not options.d:
             print "specify k and d"
@@ -178,29 +169,16 @@ if __name__ == '__main__':
                 f_right.write("\n")
                 contigs_id += 1
         bgraph = rs.bgraph_from_genome()
-
         bgraph.condense()
-        #print "forward", bgraph.expand()
-        #bgraph.condense()
-        #print "backward", bgraph.reverse_expand()
         outgraph = bgraph.project()
-        #outgraph.check() # TODO: check error
-
         outgraph.fasta(open(os.path.join(options.out_dir, 'rectangles.fasta'), 'w'))
-
         exit(1)
-
-    if not args:
+    if len(args) != 0 or not options.saves_dir:
         parser.print_help()
         sys.exit(0)
+    
 
     reference_information_file = os.path.join(options.saves_dir, "late_pair_info_counted_etalon_distance.txt")
     test_util = TestUtils(reference_information_file, os.path.join(options.out_dir, options.debug_logger))
 
     resolve(options.saves_dir, options.out_dir, test_util, options.genome)
-    if test_util.has_ref_info:
-        test_util.logger.info("unaligned " + str(test_util.unaligned) + " true_diags " + str(
-            test_util.true_diags) + " not_true_diags " + str(test_util.not_true_diags) + " join correct " + str(
-            test_util.join_correct) + " join incorrect" + str(test_util.join_incorrect) + " join unaligned " + str(
-            test_util.join_unaligned))
-    test_util.print_similar_diags(10)

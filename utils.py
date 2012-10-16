@@ -13,33 +13,9 @@ def seq_join(seq1, seq2): # join two sequences, prioritize ACGT over N
       print seq1
       print seq2
     assert len(seq1) == len(seq2)
-#    for pos, (c1, c2) in enumerate(itertools.izip(seq1, seq2)):
-#        assert c1 == c2 or c1 == 'N' or c2 == 'N', (c1, c2, pos, len(seq1), seq1[pos-20:pos+20], seq2[pos-20:pos+20]) # seq1 + '|' + seq2,
-#    seq = ''.join(map(lambda x, y: x if x != 'N' else (y if y != 'N' else 'N'), seq1, seq2))
-#    return seq
     seq1 = seq1.strip('N')
     return seq1
-    d = len(seq2) - len(seq1)
-    seq = ""
-    different = 0
-    for i in range(len(seq1)):
-      if seq1[i] == 'N':
-        seq += seq2[i]
-      else:
-        seq += seq1[i]
-      if seq1[i] != 'N' and seq2[i] != 'N' and seq1[i]!= seq2[i]:
-        different += 1
-    if different > 0:
-      print "different\n",seq1, "\n", seq2
-    #elif len(seq1) > 4*d:
-    # seq += seq2[len(seq1):]
-    #elif len(seq1) < d:
-    #  return seq
-    #else:
-    #  return seq[d:]
-
-    return seq
-
+    
 def erf(x): # from http://stackoverflow.com/a/457805/92396
     #return 0
     return math.erf(x)

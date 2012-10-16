@@ -27,14 +27,12 @@ class RectangleSet(object):
       for e1id, e2id, D, weight, delta in saveparser.prd(prd_file_name):
         self.prd[(e1id, e2id)] = (D, weight, delta+2)
  
-
     def filter_without_prd(self):
       self.__build_from_graph()
       self.__conjugate()
 
     def filter(self, prd_filename, config):
-        self.__build_from_graph()
-        self.__conjugate()
+        self.filter_without_prd()
         self.__use_prd(prd_filename, config)
         self.__rank()
 
@@ -50,11 +48,9 @@ class RectangleSet(object):
     def bgraph(self, threshold):
         bg = BGraph(self.graph, self.d, self.test_utils)
         for diag in self.__diags(threshold):
-            #print "diag ", diag.support() 
-            self.test_utils.is_true_diagonal(diag)
-            self.test_utils.add_to_diags(diag)
             bg.add_diagonal(diag)
         return bg
+    
     def bgraph_from_genome(self):
         bg = BGraph(self.graph, self.d, self.test_utils)
         for key, rect in self.rectangles.items():
@@ -72,7 +68,6 @@ class RectangleSet(object):
         assert self.ranking, "rank/filter first"
         for d in self.ranking:
             if d.support() > threshold:
-                #print d
                 yield d
 
     def __build_from_graph(self):
@@ -92,7 +87,6 @@ class RectangleSet(object):
         for rect in self.rectangles.itervalues():
             conj = self.rectangles[(rect.e2.conj, rect.e1.conj)]
             conjugate(rect, conj)
-            #print "diags", rect.diagonals.keys(), conj.diagonals.keys()
             for diag in rect.diagonals.itervalues():
                 assert diag.rectangle == rect
                 D = diag.D - diag.rectangle.e1.len + diag.rectangle.e2.len
@@ -118,9 +112,7 @@ class RectangleSet(object):
         diag_e2_id = rect.e2.eid
         if (diag_e1_id, diag_e2_id) in self.prd:
            (D, weight, delta) = self.prd[(diag_e1_id, diag_e2_id)]
-           #print "support", (D, weight, delta)
            diag.inc_prd_support(D, weight, delta, self.config)
-           #print "diag support", diag.prd_support
            if hasattr(diag, "conj") and diag != diag.conj:
              diag.conj.inc_prd_support(D - rect.e1.len + rect.e2.len, weight, delta, self.config) 
 

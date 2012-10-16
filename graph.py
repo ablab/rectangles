@@ -8,24 +8,25 @@ from utils import conjugate
 ##################
 # DEBRUIJN GRAPH #
 ##################
+THRESHOLD_IN_DEEP = 10
 alphabet = "ACGT"
 
-def findOutEdges(vertexBody, kmerMap):
+def find_out_edges(vertexBody, kmerMap):
     nextKmer = [(vertexBody + base) for base in alphabet]
     return [kmer for kmer in nextKmer if kmer in kmerMap]
  
-def findInEdges(vertexBody, kmerMap):
+def find_in_edges(vertexBody, kmerMap):
     nextKmer = [(base + vertexBody) for base in alphabet]
     return [kmer for kmer in nextKmer if kmer in kmerMap]
 
-def extendForward(vertexBody, kmerMap):    
+def extend_forward(vertexBody, kmerMap):    
     inEdge = findInEdges(vertexBody, kmerMap)
     outEdge = findOutEdges(vertexBody, kmerMap)
     if len(inEdge) == 1 and len(outEdge) == 1:
         return outEdge[0]
     return None
 
-def extendBackward(vertexBody, kmerMap):    
+def extend_backward(vertexBody, kmerMap):    
     inEdge = findInEdges(vertexBody, kmerMap)
     outEdge = findOutEdges(vertexBody, kmerMap)
     if len(inEdge) == 1 and len(outEdge) == 1:
@@ -84,7 +85,6 @@ class Graph(object):
         return v
 
     def add_edge(self, eid, v1id, v2id, edge_len, conj_id):
-        #assert eid != conj_id, "Self-conjugate edges are not supported yet"
         if eid in self.es:
           return self.es[eid]
         if eid > self.max_eid or conj_id > self.max_eid:
@@ -215,8 +215,6 @@ class Graph(object):
             self.add_cvr(eid, cvr)
         self.update_K()
 
-    
-   
     def make_graph(self, genome,k):
         #print genome,"\n", utils.rc(genome)
         self.K = k
@@ -241,7 +239,7 @@ class Graph(object):
             body = [key[-1]]
             endVertex = key[1:]                    
             while True:
-                nextKmer = extendForward(endVertex, kmers)
+                nextKmer = extend_forward(endVertex, kmers)
                 if nextKmer == None:
                     break
                 body.append(nextKmer[-1])
@@ -251,7 +249,7 @@ class Graph(object):
                 
             beginVertex = key[:-1]
             while True:
-                nextKmer = extendBackward(beginVertex, kmers)
+                nextKmer = extend_backward(beginVertex, kmers)
                 if nextKmer == None:
                     break
                 body.insert(0, nextKmer[-1])
@@ -281,7 +279,6 @@ class Graph(object):
                 self.add_edge(eid, bv, ev, len(body) -k +1 , eid)
                 edges.add((bv,ev))
                 self.add_seq(eid, body)
-                #print kmers[body[:k]], kmers[utils.rc(body)[:k]]
                 self.etalon_dist[eid] = kmers[body[:k]] + kmers[utils.rc(body)[:k]]
                 eid += 1
               else:
@@ -291,15 +288,9 @@ class Graph(object):
                 edges.add((rbv, rev))
                 self.add_seq(eid, body)
                 self.add_seq(eid +1, utils.rc(body))
-                #print "edge\n", body,"\n", utils.rc(body),"\n", beginVertex,"\n", endVertex, "\n",utils.rc(endVertex), "\n", utils.rc(beginVertex)
-
-                #print kmers[body[:k]],  kmers[utils.rc(body)[:k]]
                 self.etalon_dist[eid] = kmers[body[:k]]
                 self.etalon_dist[eid+1] = kmers[utils.rc(body)[:k]]
                 eid += 2
-				
-			
- 
    
     def dfs_with_etalon_dist(self, e, d):
       limit1 = d - e.len
@@ -322,7 +313,6 @@ class Graph(object):
                 new_dists.append(dist - prev_e.len -1 )
             if len(new_dists) == 0:
               continue
-
             pos2 = pos + e2.len
             if pos2 < limit2:
               ls[pos2].add(e2.v2)
@@ -343,7 +333,6 @@ class Graph(object):
       ls[0].add(e.v2)
       for pos in xrange(limit2):
           for v in ls[pos]:
-              #v = e.v2
               for e2 in v.out:
                 pos2 = pos + e2.len
                 if pos2 < limit2:
@@ -367,9 +356,9 @@ def number_of_pathes(v1, v2, limit):
     return 0
 
 def find_paths(v1, v2, e1, threshold):
-  return __find_all_paths(v1, v2, e1, [], 0, [], threshold)
+  return __find_all_paths(v1, v2, e1, [], 0, [], threshold, THRESHOLD_IN_DEEP)
 
-def __find_all_paths(v1, v2, e1, path, path_len, paths, threshold):
+def __find_all_paths(v1, v2, e1, path, path_len, paths, threshold, threshold_in_deep):
     for e in v1.out:
         if (len(path) == 0) and e != e1:
           continue
@@ -382,7 +371,7 @@ def __find_all_paths(v1, v2, e1, path, path_len, paths, threshold):
             paths.append((new_path, new_path_len))
             return paths
         else:
-            if (len(path) > 10):
+            if (len(path) > threshold_in_deep):
               return paths
             __find_all_paths(e.v2, v2, e1, new_path, new_path_len, paths, threshold - e.len)
     return paths

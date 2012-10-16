@@ -95,7 +95,6 @@ class BGraph(object):
   def check_tips(self, K ):
     bv1s = set()
     bv2s = set()
-    print "Check tips"
     tips = set()
     for bv in self.bvs.itervalues():
         if len(bv.inn) == 1 and len(bv.out) == 0 and len(bv.inn[0].get_seq(K, self.d)) < 3 * self.d and bv.inn[0].bv1.bvid != bv.bvid:
@@ -108,10 +107,8 @@ class BGraph(object):
           supp = 0
           for diag in edge.diagonals:
             supp += diag.support()
-          #print bv.inn[0], len(bv.inn[0].get_seq(K, self.d)), "support", supp
           if supp < 1000:
             tips.add(bv.inn[0])
-    print "maybe tips", len(bv1s), len(tips)
     self.delete_tips(K,tips)
 
   def delete_tips(self, K, bes):
@@ -129,8 +126,6 @@ class BGraph(object):
     for be in self.bes:
       if len(be.get_seq(K, self.d)) > L:
         self.__find_loops(be, K, threshold, L, edges_to_delete, connected_paths)
-    print "delete", [e.beid for e in edges_to_delete]
-    print "connected_paths", connected_paths
     for edge in edges_to_delete:
       if edge.beid not in connected_paths and edge.conj.beid not in connected_paths:
         self.__remove_bedge__(edge)
@@ -171,7 +166,6 @@ class BGraph(object):
     for bv in visited_bvs:
       if not self.__is_connected(bv, long_end, threshold):
         return
-    print "all connected"
     for bv in visited_bvs:
       for e in bv.out:
         if e.bv2.bvid != end_long_edge_id:
@@ -181,11 +175,9 @@ class BGraph(object):
         if bv_begin.bvid != begin_long_edge_id:
           edges_to_delete.add(e)
     path = self.__get_path(be.bv2, long_end, threshold) 
-    print "path", path
     for e in path:
       connected_path.add(e.beid)
     
-
   def __is_connected(self, bv1, be1, threshold):
     lst = [(bv1,0)]
     while len(lst) != 0:
@@ -210,29 +202,6 @@ class BGraph(object):
         new_path.append(be)
         lst.append((be.bv2, deep + 1, new_path))
     return True
-
-    
-  def find_everything_about_edges(self, beids, K):
-    print "All about edge", beids
-    for be in self.bes:
-      if be.beid in beids:
-        info = str(be.beid) + " len " + str(len(be.get_seq(K, self.d))) + " " 
-        bv1 = be.bv1
-        bv2 = be.bv2
-        info += " bv1 " + str(bv1.bvid) + " inn "
-        for e in bv1.inn:
-          info += str(e.beid) + " (" +str(e.bv1.bvid) + "," +  str(e.bv2.bvid) + ") "
-        info += " out "
-        for e in bv1.out:
-          info += str(e.beid) + " (" +str(e.bv1.bvid) + "," +  str(e.bv2.bvid) + ") "
-        info += " bv2 "  + str (bv2.bvid) + " inn "
-        for e in bv2.inn:
-          info += str(e.beid) + " (" +str(e.bv1.bvid) + "," +  str(e.bv2.bvid) + ") "
-        info += " out "
-        for e in bv2.out:
-          info += str(e.beid) + " (" +str(e.bv1.bvid) + "," +  str(e.bv2.bvid) + ") "
-        info += "\n" 
-        print info
 
   def save(self, outpath, K):
     eid = 0
@@ -294,14 +263,6 @@ class BGraph(object):
     conjugate(diag, diag_conj)
         
     self.add_diagonal(diag)
-       # self.diagonals.add(diag)
-        #self.diagonals.add(diag_conj)
-        
-       # be = self.__add_bedge(diag) 
-        #be_conj = self.__add_bedge(diag_conj)
-        #conjugate(be, be_conj)
-        #conjugate(be.bv1, be_conj.bv2)
-        #conjugate(be.bv2, be_conj.bv1)
  
   def __join_biedges(self, be1, be2):
         ## u ---be1---> v ---be2---> w
@@ -425,103 +386,6 @@ class BGraph(object):
         self.bvs.pop(v.key)
         self.bvs.pop(y.key)
  
-#EXPAND and REVERSE_EXPAND procedures will be merely the final steps of graph processing. 
-# The choice of expand should be revised careful to: 1) Maximize N50, 2) Less vulnerable to missassemblies (Since relying merely on graph structure will lead to missassemblies when
-# some of the edges in the graphs are missing
-  def reverse_expand(self):
-        k =0
-        for v in self.bvs.values():
-            inv,outv,injv,outjv = len(v.inn), len(v.out), len(v.conj.inn), len(v.conj.out)
-            if outv == injv == 1 and inv  == outjv and inv > 1 and self.__choose_expand(v):
-                k = k+1
-                outEdge = v.out[0]
-                outEdgeJ = outEdge.conj
-                u = outEdge.bv2
-                uj = u.conj
-                u.inn.remove(outEdge)
-                uj.out.remove(outEdgeJ)
-                for e in v.inn:
-                    w = e.bv1
-                    w.out.remove(e)
-                    addEdge = BEdge(w,u,None)
-                    addEdge.diagonals = e.diagonals + outEdge.diagonals
-                    wj = w.conj
-                    ej = e.conj
-                    wj.inn.remove(ej)
-                    addEdgeJ = BEdge(uj,wj, None)
-                    addEdgeJ.diagonals = outEdgeJ.diagonals + ej.diagonals
-                    #print "reverse_expand connect diags" 
-                    conjugate(addEdge, addEdgeJ)
-                    self.bes.add(addEdge)
-                    self.bes.add(addEdgeJ)
-                    self.bes.remove(e)
-                    self.bes.remove(ej)
-
-                self.bes.remove(outEdge)
-                self.bes.remove(outEdgeJ)
-                self.bvs.pop(v.key)
-                self.bvs.pop(v.conj.key)
-                    
-                    
-        return k
-                
-                
-
-
-   
-  def expand(self):
-        j = 0
-        # u --> v < wi 
-        # wi' > v' --> u'
-        for v in self.bvs.values():
-            inv,outv,injv,outjv = len(v.inn), len(v.out), len(v.conj.inn), len(v.conj.out)
-            if inv == outjv == 1 and outv == injv and outv > 1 and self.__choose_expand(v):
-                inEdge = v.inn[0]
-                inEdgej = inEdge.conj
-                u = inEdge.bv1 
-                j = j +1
-                u.out.remove(inEdge)
-                uj = u.conj
-                uj.inn.remove(inEdgej)
-                for e in v.out:
-                    w = e.bv2
-                    w.inn.remove(e)
-                    addEdge = BEdge(u,w,None)
-                    #print "expand", addEdge.beid, inEdge.beid, e.beid
-                    addEdge.diagonals = inEdge.diagonals + e.diagonals
-                    wj = w.conj
-                    ej = e.conj
-                    wj.out.remove(ej)
-                    addEdgeJ = BEdge(wj,uj,None)
-                    addEdgeJ.diagonals = ej.diagonals + inEdgej.diagonals
-                    conjugate(addEdge, addEdgeJ)
-                    self.bes.add(addEdge)
-                    self.bes.add(addEdgeJ)
-                    self.bes.remove(ej)
-                    self.bes.remove(e)
-
-                self.bes.remove(inEdge)
-                self.bes.remove(inEdgej)
-                self.bvs.pop(v.key)
-                self.bvs.pop(v.conj.key)
-                    
-        return j
-
- 
-# whether we should expand this or not.
-# TODO #N50 optimization should also be here
-  def __choose_expand(self, v):
-       #no loop or repeating vertices is allowed u --> v < wi
-        l = []
-        for e in v.inn:
-            l.append(e.bv1)
-        for e in v.out:
-            l.append(e.bv2)
-        if len(l) == len(set(l)):
-            return True
-        return False
-           
-
   def condense(self):
         l = len(self.bvs)
         for bv in self.bvs.values(): # copy because can be: "Set changed size during iteration"
@@ -532,7 +396,6 @@ class BGraph(object):
                                                                                          len(self.bvs)))
 
   def project(self, outpath):
-        log = open(os.path.join(outpath,"mis_log.txt"),"w")    
         g = graph.Graph()
         for be in self.bes:
             # v ---------be--------> w
@@ -551,13 +414,6 @@ class BGraph(object):
             g.add_edge(be.beid, v.bvid, w.bvid, len(seq) - self.graph.K, be.conj.beid)
             g.add_seq(be.beid, seq)
             g.add_cvr(be.beid, cvr)
-            
-            log.write("\nmisassemble " + str(be.beid) + " "+ str(be.conj.beid)+ " "+ str(len(seq)))
-            accum = 0
-            for diag in be.diagonals:
-                accum += diag.offsetc - diag.offseta
-                log.write("\n" +  str(diag.offsetc - diag.offseta) + " " + str( accum) + " "+str(  diag.support()) + " diag.e1.len " +  str(diag.rectangle.e1.len) + " diag.e2.len " + str(diag.rectangle.e2.len)+ " e1.eid " + str(diag.rectangle.e1.eid) + " e2.eid " + str(diag.rectangle.e2.eid) )
-        log.close()    
         g.update_K()
         maxv = BVertex.bvid
         maxe = BEdge.beid
@@ -585,86 +441,6 @@ class BGraph(object):
                 g.add_seq(e1.eid + maxe, seq)
         return g
 
-  def __create_right_rect(self, overlapX, K, e11, e12, e21):
-    g = self.graph
-    curEid = g.max_eid;
-    g.add_edge(curEid + 1, e11.v2, e21.v1, K - overlapX, - 1)
-    g.add_edge(curEid + 2, e21.v1.conj, e11.v2.conj, K - overlapX, curEid + 1)
-    seqv1 = e11.v2.seq(K)
-    seqv2 = e21.v1.seq(K)
-    newSeq = seqv1[:K-overlap] + seqv2
-    if not newSeq.startswith(seqv1):
-      raise Exception("Wrong seq!")
-
-    g.add_seq(curEid + 1, newSeq)  
-    g.add_seq(curEid + 2, utils.rc(newSeq))
-    
-    rect = Rectangle(curEid + 1, e12)
-
-    rect.add_diagonal(self.d, self.d - diag1.offsetd)
-
-    rect_diag = rectangle.get_closest_diagonal(self.d + diag1.offseta - diag1.offsetb)
-    self.add_diagonal_and_conj(rect_diag)
-
-
-  def __connect_diags(self, diag1, diag2, overlapX, overlapY, K):
-    e11 = diag1.rectangle.e1
-    e21 = diag2.rectangle.e1
-    e12 = diag1.rectangle.e2
-    e22 = diag2.rectangle.e2
-
-    g = self.graph
-    if e12 == e22:      
- 
-      print "Overlap e12 == e22!", e11.eid, e12.eid, e21.eid, e22.eid
-      
-      
-      if diag1.offsetc != e11.len or diag2.offseta != 0:
-        print "Can't create rect with such diag", diag1.offsetc, diag1.offsetd, e11.len, e12.len
-        return
-      
-      if diag1.offsetd + K - overlapX != diag2.offsetb:
-        print "Can't make such diagonal cause of offsets", diag1.offsetd, K, overlapX, diag2.offsetb
-        return
-
-      curEid = g.max_eid;
-      g.add_edge(curEid + 1, e11.v2, e21.v1, K - overlapX, - 1)
-      g.add_edge(curEid + 2, e21.v1.conj, e11.v2.conj, K - overlapX, curEid + 1)
-      seqv1 = e11.v2.seq(K)
-      seqv2 = e21.v1.seq(K)
-      newSeq = seqv1[:K-overlap] + seqv2
-      if not newSeq.startswith(seqv1):
-        raise Exception("Wrong seq!")
-
-      g.add_seq(curEid + 1, newSeq)  
-      g.add_seq(curEid + 2, utils.rc(newSeq))
-      
-      rect = Rectangle(curEid + 1, e12)
-
-      rect.add_diagonal(self.d, self.d - diag1.offsetd)
-
-      rect_diag = rectangle.get_closest_diagonal(self.d + diag1.offseta - diag1.offsetb)
-      self.add_diagonal_and_conj(rect_diag)
-      return
-   
-    if e11 == e21:
-      print "Vert are the same"
-      #TODO
-      return
-
-
-    # cross the right bound
-    if diag1.offsetc == e11.len:
-      
-      if diag1.offsetd + K - overlapX < e12.len:
-        print "1111Can't make such diagonal cause of offsets", diag1.offsetd, K, overlapX, diag2.offsetb
-        return
-      print "pass check!!"
-      self.__create_right_rect(overlapX, K, e11, e12, e21)
-
-    if diag1.offsetd == e12.len:
-      print "All top!111", e11.eid, e12.eid, e21.eid, e22.eid
-
 
   def __check(self):
         for edge in self.bes:
@@ -675,11 +451,6 @@ class BGraph(object):
     return
     threshold = self.d
     self.test_utils.logger.info( "treshold " + str( threshold))
-    count_ovelaps = 0
-    count_miss_rect = 0
-    count_miss_path = 0
-    true_miss_path = 0
-    count_overlaps = 0
     bv1s = set()
     bv2s = set()
     for bv in self.bvs.itervalues():
@@ -704,7 +475,6 @@ class BGraph(object):
         paired_paths = find_pair_paths(paths1, paths2, diag1, diag2)
         if len(paired_paths) != 0:
           all_paired_paths.append((paired_paths, diag1, diag2))
-    self.test_utils.logger.info("all_paired_paths " + str( len(all_paired_paths)))
     can_find_one_path_more = True
     added_paths = []
     while can_find_one_path_more:
@@ -722,54 +492,8 @@ class BGraph(object):
         (best_support, best_len, best_rectangles, best_diags, best_path) = the_best_path
         can_find_one_path_more = True
         prev_diag = best_diags[0]
-        true_path = True 
-        for diag in best_diags[1:]:
-          if prev_diag:
-            should_connect = self.test_utils.should_join(prev_diag, diag)
-            #print "should connect", should_connect
-            if not should_connect:
-              true_path = False
-            self.add_diagonal_and_conj(diag)
-            is_true = self.test_utils.is_true_diagonal(diag)
-            #print "add diagonal", is_true
-            if not is_true:
-              true_path = False
-            count_miss_rect += 1
-            prev_diag = diag
-        count_miss_path += 1
-        #print "end path true path", true_path, "support", best_support, "best_len", best_len, best_support/best_len, "\n\n"
-        if true_path:
-          true_miss_path += 1
+        
 
-
-    bv1s = set()
-    bv2s = set()
-    for bv in self.bvs.itervalues():
-      if len(bv.inn) == 1 and len(bv.out) == 0:
-        bv1s.add(bv)
-      if len(bv.inn) == 0 and len(bv.out) == 1:
-        bv2s.add(bv)
- 
-    for bv1 in bv1s:
-      be1 = bv1.inn[0]
-      diag1 = be1.diagonals[-1]
-      seq_1_1 = diag1.rectangle.e1.seq.strip()
-      seq_1_2 = diag1.rectangle.e2.seq.strip()
-      for bv2 in bv2s:
-        be2 = bv2.out[0]
-        if (be1.beid == be2.beid):
-          continue
-        diag2 = be2.diagonals[0]
-        seq_2_1 = diag2.rectangle.e1.seq.strip()
-        seq_2_2 = diag2.rectangle.e2.seq.strip()
-        overlap_edges_1 = utils.get_overlap(seq_1_1, seq_2_1)
-        overlap_edges_2 = utils.get_overlap(seq_1_2, seq_2_2)
-        if overlap_edges_1 > experimental.min_overlap and overlap_edges_2 > experimental.min_overlap:
-          #TODO:add ness rectangle
-          count_ovelaps += 1
-          self.__connect_diags(diag1, diag2, overlap_edges_1, overlap_edges_2, K)
-
-    self.test_utils.logger.info( "count_overlap " + str( count_ovelaps) +  " count_miss_rect " + str( count_miss_rect) +  " count miss path " + str(count_miss_path) +  " true miss path " + str(true_miss_path))
 
   def choose_best_path(self, paired_paths, rectangeles_set, diag1, diag2, d, added_paths):
       best_support = 0
@@ -781,15 +505,6 @@ class BGraph(object):
         
       for paired_path in paired_paths:
         (path1, path2, path_len) = paired_path
-        """ ed11 = path1[0]
-        ed21 = path1[-1]
-        rectangle = Rectangle(ed11,ed21)
-        rectangle.add_diagonal(d, d + diag1.offseta - diag1.offsetb)
-        rect_diag = rectangle.get_closest_diagonal(d + diag1.offseta - diag1.offsetb)
-        rectangeles_set.use_prd_diag(rect_diag)
-        if rect_diag.support < 0.001:
-          continue
-        """  
         if paired_path in added_paths:
           continue
         first_shift = diag1.offseta
@@ -822,7 +537,6 @@ class BGraph(object):
             make_less_N50 = True
             continue
           path_support += rect_diag.prd_support 
-          #path_support += rectangeles_set.get_support(ed1, ed2)
           if ed2.len - second_shift < ed1.len - first_shift:
             pos_second_path += 1
             first_shift += ed2.len - second_shift
@@ -843,7 +557,6 @@ class BGraph(object):
             pos_first_path += 1
             first_shift = 0
             second_shift = 0
-        #print "one of paths", path_len  , path_support, "not supported", not_supported
         if not make_less_N50 and path_len > 1 and  path_support / path_len < 1000 and  path_support / path_len > best_support:
           best_support = path_support 
           best_len = path_len
@@ -864,25 +577,3 @@ def find_pair_paths(paths1, paths2, diag1, diag2):
         paired_paths.append((path1, path2, len1))
   return paired_paths
   
-  
-  
-#    def diag_output(self, output_path, K):
-#        corr_seq = open(os.path.join(output_path, 'corr_diags.seq'), 'w')
-#        wrong_seq = open(os.path.join(output_path, 'wrong_diags.seq'), 'w')
-#        corr_prd = open(os.path.join(output_path, 'corr_diags.prd'), 'w')
-#        wrong_prd = open(os.path.join(output_path, 'wrong_diags.prd'), 'w')
-#        corr_total = sum(diag.taken for diag in self.ranking)
-#        wrong_total = len(self.ranking) - corr_total
-#        print >>corr_seq, self.d
-#        print >>wrong_seq, self.d
-#        print >>corr_prd, corr_total
-#        print >>wrong_prd, wrong_total
-#        for diag in self.ranking:
-#            stream_seq = corr_seq if diag.taken else wrong_seq
-#            stream_prd = corr_prd if diag.taken else wrong_prd
-#            print >>stream_seq, diag.rectangle.e1.seq[diag.offseta : diag.offsetc + K], diag.rectangle.e2.seq[diag.offsetb : diag.offsetd + K]
-#            print >>stream_prd, diag.rectangle.e1.eid, diag.rectangle.e2.eid, diag.D, 0.00, 0.00, '.' #15 15 0.00 1.91 0.00 .
-#        corr_seq.close()
-#        wrong_seq.close()
-#        corr_prd.close()
-#        wrong_prd.close()
