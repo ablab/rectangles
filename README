@@ -1,10 +1,8 @@
 RECTANGLE GRAPH MODULE
 ======================
 
-This module can be run on top of [SPAdes][1] output directory
-to resolve repeats using information from paired-end reads.
-
-[1] http://bioinf.spbau.ru/spades
+This module can be run on top of SPAdes [http://bioinf.spbau.ru/spades]
+output directory to resolve repeats using information from paired-end reads.
 
 Citation
 ========
@@ -13,6 +11,13 @@ Nikolay Vyahhi, Son K. Pham, Pavel Pevzner.
 From de Bruijn Graphs to Rectangle Graphs for Genome Assembly,
 Lecture Notes in Bioinformatics 7534 (2012), pp. 249-261.
 http://www.springerlink.com/content/e617788h25u36440/
+
+License
+=======
+
+Developed in Algorithmic Biology Lab of St. Petersburg Academic University
+of the Russian Academy of Sciences.
+See LICENSE file for details.
 
 Requirements
 ============
@@ -30,5 +35,7 @@ Usage
 Questions
 =========
 
-If you have any questions of comments, please email to
+If you have any questions of comments, please email them to
 Nikolay Vyahhi <vyahhi@bioinf.spbau.ru>
+
+We'll be happy to hear your feedback.
