@@ -72,8 +72,6 @@ def prd(filename):
             continue
         e1id = int(e1id)
         e2id = int(e2id)
-        if e1id == 45092 and e2id == 48949:
-          print "FOUND", weight
         weight = float(weight)
         delta = float(delta)
         yield e1id, e2id, D, weight, delta
