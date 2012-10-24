@@ -12,7 +12,7 @@ import graph
 
 class RectangleSet(object):
 
-    def __init__(self, graph, d, test_utils, prd_file_name, config):
+    def __init__(self, graph, d, test_utils = None, prd_file_name = None, config = None):
         self.graph = graph
         self.d = d
         self.prd = dict()
@@ -22,17 +22,20 @@ class RectangleSet(object):
         self.rectangles = {} # (e1, e2) -> Rectangle
         self.logger = logging.getLogger('rectangles')
         self.test_utils = test_utils
+        self.not_used_prd_support = dict()
 
     def __get_prd(self, prd_file_name):
       for e1id, e2id, D, weight, delta in saveparser.prd(prd_file_name):
-        self.prd[(e1id, e2id)] = (D, weight, delta+2)
+        self.prd[(e1id, e2id)] = (D, weight, delta + 2)
  
+
     def filter_without_prd(self):
       self.__build_from_graph()
       self.__conjugate()
 
     def filter(self, prd_filename, config):
-        self.filter_without_prd()
+        self.__build_from_graph()
+        self.__conjugate()
         self.__use_prd(prd_filename, config)
         self.__rank()
 
@@ -48,6 +51,8 @@ class RectangleSet(object):
     def bgraph(self, threshold):
         bg = BGraph(self.graph, self.d, self.test_utils)
         for diag in self.__diags(threshold):
+            self.test_utils.is_true_diagonal(diag)
+            self.test_utils.add_to_diags(diag)
             bg.add_diagonal(diag)
         return bg
     
@@ -72,11 +77,7 @@ class RectangleSet(object):
 
     def __build_from_graph(self):
         for e1 in self.graph.es.itervalues():
-            if len(self.graph.etalon_dist) == 0:
-              func = self.graph.dfs
-            else:
-              func = self.graph.dfs_with_etalon_dist
-            for e2, D in func(e1, self.d):
+            for e2, D in self.graph.dfs(e1, self.d):
                 if (e1, e2) not in self.rectangles:
                     self.rectangles[(e1, e2)] = Rectangle(e1, e2)
                 r = self.rectangles[(e1, e2)]
@@ -99,6 +100,11 @@ class RectangleSet(object):
             e1 = self.graph.es[e1id]
             e2 = self.graph.es[e2id]
             if (e1, e2) not in self.rectangles: # there' no possible rectangles between e1 and e2
+                if weight < 0.00001 or D - e1.len + 100 < self.d:
+                  continue
+                if (e1,e2) not in self.not_used_prd_support:
+                  self.not_used_prd_support[(e1,e2)] = []
+                self.not_used_prd_support[(e1,e2)].append((D, weight,delta))
                 continue
             r = self.rectangles[(e1, e2)]
             for diag in r.diagonals.itervalues():
@@ -148,9 +154,7 @@ class RectangleSet(object):
         for r in self.rectangles.itervalues():
             for d in r.diagonals.itervalues():
                 self.ranking.append(d)
-                #print d.rectangle.e1, d.rectangle.e2, d.support()
         self.ranking.sort(key=lambda x: x.support(), reverse=True)
-        # print percentiles
         step = 1
         percentiles = [utils.quantile(self.ranking, q).support() for q in xrange(0,100+step,step)]
         self.logger.info("Percentiles: %s" % list(enumerate(percentiles)))

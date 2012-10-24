@@ -83,7 +83,7 @@ class Diagonal(object):
             assert False
 
     def __repr__(self):
-        return 'D(%s|%s,%d, %.3f)' % (str(self.rectangle.e1), str(self.rectangle.e2), self.D, self.support())
+        return 'D(%s|%s,%d)' % (str(self.rectangle.e1), str(self.rectangle.e2), self.D)
 
     def support(self):
         if self.D == 0:

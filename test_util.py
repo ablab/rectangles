@@ -1,4 +1,12 @@
 import logging
+import sys 
+import math
+import os
+import utils
+import saveparser
+from diagonal import Diagonal
+from utils import conjugate
+import experimental
 
 def makelogger(logfilename):
   logger = logging.getLogger('debug')
@@ -12,6 +20,8 @@ def makelogger(logfilename):
   ch.setFormatter(formatter)
   logger.addHandler(fh)
   logger.addHandler(ch)
+
+
 
 def parse_ref_info(fin):
   ref_info = dict()
@@ -163,4 +173,6 @@ class TestUtils(object):
      #print self.__get_ref_info(e2_1.eid)
      #print self.__get_ref_info(e2_2.eid)
      return False
-
+  
+  def stat(self):
+    self.logger.info("unaligned " + str(self.unaligned) +  " true_diags " + str(self.true_diags) +  " not_true_diags " + str(self.not_true_diags) +  " join correct " + str(self.join_correct) +  " join incorrect"  + str(self.join_incorrect) + " join unaligned " + str(self.join_unaligned))
