@@ -176,3 +176,36 @@ class TestUtils(object):
   
   def stat(self):
     self.logger.info("unaligned " + str(self.unaligned) +  " true_diags " + str(self.true_diags) +  " not_true_diags " + str(self.not_true_diags) +  " join correct " + str(self.join_correct) +  " join incorrect"  + str(self.join_incorrect) + " join unaligned " + str(self.join_unaligned))
+
+  def have_ref(self, e_first, e_prev, e_cur, pos):
+    if len(self.__get_ref_info(e_first.eid)) == 0 or len(self.__get_ref_info(e_prev.eid)) == 0 or len(self.__get_ref_info(e_cur.eid)) == 0 :
+      return False
+    for e_first_ref in self.__get_ref_info(e_first.eid):
+      for e_prev_ref in self.__get_ref_info(e_prev.eid):
+        for e_cur_ref in self.__get_ref_info(e_cur.eid):
+          if e_first_ref * e_prev_ref < 0 or e_prev_ref * e_cur_ref < 0:
+            continue
+            if abs(e_cur_ref) == abs(e_prev_ref) + e_prev.len and abs(e_cur_ref) == abs(e_first_ref) + pos + e_first.len:
+	      return True
+    return False
+
+  def count_of_genomic_pathes(self, e1, e2, D):
+    if D == 0 or len(self.__get_ref_info(e1.eid)) == 0 or len(self.__get_ref_info(e2.eid)) == 0:
+      return 0
+    vertex_dist = int(D - e1.len)
+    limit = vertex_dist + 1			
+    ls = [{} for _ in xrange(limit)]
+    ls[0][e1] = 1
+    for pos in xrange(limit):
+      for e, cnt in ls[pos].iteritems():
+	v = e.v2
+        for e_out in v.out:
+	  pos2 = pos + e_out.len
+ 	  if pos2 < limit and self.have_ref(e1, e, e_out, pos, ptc):
+            ls[pos2][e_out] = ls[pos2].get(e_out, 0) + 1
+											
+      count = 0
+      for e, cnt in ls[vertex_dist].iteritems():
+	if e.v2 == e2.v1 and self.have_ref(e1, e, e2, vertex_dist, ptc):
+	  count += 1
+    return count
