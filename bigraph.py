@@ -38,7 +38,7 @@ class BEdge(Abstract_Edge):
 
   def get_seq_for_contig(self, K, d, is_sc):
     if is_sc:
-      CUT_THRESHOLD = 1.0 
+      CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
       CUT_LENGTH_THRESHOLD = 5.0
       MIN_LENGTH = 4 * d
     else:
@@ -55,7 +55,7 @@ class BEdge(Abstract_Edge):
       diag = self.diagonals[diag_index]
       can_add_begin = True
       while cur_len < d:
-        if diag.offsetc - diag.offseta < CUT_LENGTH_THRESHOLD or (diag.support() > 0.0 and diag.support() < CUT_THRESHOLD):
+        if diag.offsetc - diag.offseta < CUT_LENGTH_THRESHOLD or (diag.support() < CUT_THRESHOLD):
           can_add_begin = False
           break
         diag_index += 1
@@ -70,7 +70,7 @@ class BEdge(Abstract_Edge):
       diag = self.diagonals[diag_index]
       can_add_end = True
       while cur_len < d:
-        if diag.offsetc - diag.offseta < 10 or (diag.support() > 0.0 and diag.support() < 1.0):
+        if diag.offsetc - diag.offseta < 10 or (diag.support() < 1.0):
           can_add_end = False
           break
         diag_index -= 1
