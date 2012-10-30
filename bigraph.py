@@ -152,7 +152,74 @@ class BGraph(Abstract_Graph):
     for diag in bedge.diagonals:
       if diag in self.diagonals:
         self.diagonals.remove(diag)
+  
+  def path_expand(self, L):
+    for edge_id, edge in self.es.items():
+      if edge.length() > L and edge.eid == 8024:
+        self.edge_path_expand(edge)
 
+  def edge_path_expand(self, begin_edge):
+    print "EDGE", begin_edge.eid
+    second_edges = []
+    prev_first = None
+    first = begin_edge.diagonals[0].rectangle.e2
+    for diag in begin_edge.diagonals:
+      if diag.rectangle.e1 == first:
+        prev_first = first
+        while prev_first.eid == first.eid:
+          if len(second_edges) == 0:
+            first == None
+            break
+          first = second_edges.pop(0)
+      second_edges.append(diag.rectangle.e2)
+    info_from_begin_edge = list(second_edges)
+    v2 = begin_edge.v2
+    should_expand = True
+    expand_edges = []
+    while should_expand:
+      next_edges = []
+      copy_first = first
+      copy_prev_first = prev_first
+      copy_second_edges = list(second_edges)
+      print first, prev_first, copy_first, copy_prev_first, "second\n", second_edges
+      for edge in v2.out:
+        print "edge", edge.eid
+        first = copy_first
+        prev_first = copy_prev_first
+        second_edges = list(copy_second_edges)
+        can_be_next = True
+        for diag in edge.diagonals:
+          if diag.rectangle.e1 != first and diag.rectangle.e1 != prev_first:
+            print "can't go next", edge.eid, diag, first, prev_first
+            can_be_next = False
+            break
+          else:
+            if not first and len(second_edges) > 0:
+              first = second_edges.pop(0)
+            if diag.rectangle.e1 == first:
+              prev_first = first
+              while prev_first.eid == first.eid:
+                if len(second_edges) == 0:
+                  first = None
+                  break
+                first = second_edges.pop(0)
+            second_edges.append(diag.rectangle.e2)
+            print "first ", first, " prev_first ", prev_first, " second\n",second_edges
+        if can_be_next:
+          next_edges.append(edge)
+      if len(next_edges) == 1 and next_edges[0] not in expand_edges:
+        expand_edges.append(next_edges[0])
+        v2 = next_edges[0].v2
+      else:
+        print "can't expand", next_edges
+        should_expand = False
+
+    if len(expand_edges) != 0:
+      print "expand_edges", [e.eid for e in expand_edges]
+
+      
+      
+    
   def __try_delete_bv(self, v):
     if len(v.out) == 0 and len(v.inn) == 0 and v.key in self.vs:
       del self.vs[v.key]

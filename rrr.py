@@ -98,7 +98,7 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
         bgraph = rs.bgraph(threshold)
         if not bgraph.diagonals:
             continue
-        #bgraph.build_missing_rectangles(ingraph.K, rs)
+        bgraph.build_missing_rectangles(ingraph.K, rs)
         bgraph.condense()
         outgraph = bgraph.project(output_path, is_sc)
         """thisN50 = outgraph.stats(d)
@@ -129,11 +129,12 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
     maxbgraph.delete_loops(ingraph.K, 1000,10)
     maxbgraph.condense()"""
     outgraph = maxbgraph.project(output_path, is_sc)
-    
+    maxbgraph.path_expand(1000) 
     outgraph.fasta(open(os.path.join(output_path,"rectangles.fasta"),"w"))
     #maxbgraph.check_begin_ends(ingraph.K, 1000)
     #should_connect = maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10) 
     #outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops_additional_paired_info.fasta"),"w"), should_connect)
+    maxbgraph.print_about_edges([8024, 8022, 7960, 8023, 8025, 7961, 7573, 1446, 6731, 6732], ingraph.K)
     outgraph.save(os.path.join(output_path,"last_graph"))
     if genome:  
       check_diags.check(genome, maxbgraph, maxgraph.K, open(os.path.join(output_path, "check_log.txt"), "w"), test_utils) 
