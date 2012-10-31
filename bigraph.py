@@ -35,7 +35,77 @@ class BEdge(Abstract_Edge):
     for diag in self.diagonals:
       length += diag.offsetc - diag.offseta
     return length
+  
+  def get_begin_seq(self, K, d, is_sc):
+    first = self.diagonals[0]
+    return first.rectangle.e1.seq[:first.offseta]
+    if is_sc:
+      CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
+      CUT_LENGTH_THRESHOLD = 5.0
+      MIN_LENGTH = 4 * d
+    else:
+      CUT_LENGTH_THRESHOLD = 3
+      CUT_THRESHOLD = 0.0
+      MIN_LENGTH = 0
+    (seq1, seq2) = self.get_paired_seq(K, d)
+    first = self.diagonals[0]
+    if len(seq1) > MIN_LENGTH:
+      cur_len = 0
+      diag_index = 0
+      diag = self.diagonals[diag_index]
+      can_add_begin = True
+      while cur_len < d:
+        if diag.offsetc - diag.offseta < CUT_LENGTH_THRESHOLD or (diag.support() < CUT_THRESHOLD):
+          can_add_begin = False
+          break
+        diag_index += 1
+        if diag_index == len(self.diagonals):
+          cur_len = d
+          continue
+        diag = self.diagonals[diag_index]
+        cur_len += diag.offsetc - diag.offseta
+      
+      if can_add_begin:
+        return first.rectangle.e1.seq[:first.offseta]
+    return ""
 
+  def get_end_seq(self, K, d, is_sc):
+    
+    if is_sc:
+      CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
+      CUT_LENGTH_THRESHOLD = 5.0
+      MIN_LENGTH = 4 * d
+    else:
+      CUT_LENGTH_THRESHOLD = 3
+      CUT_THRESHOLD = 0.0
+      MIN_LENGTH = 0
+    (seq1, seq2) = self.get_paired_seq(K, d)
+    last = self.diagonals[-1]
+    return seq2[-d:] + last.rectangle.e2.seq[last.offsetd+K:]
+    if len(seq1) > MIN_LENGTH:
+      cur_len = 0
+      diag_index = len(self.diagonals) -1
+      diag = self.diagonals[diag_index]
+      can_add_end = True
+      while cur_len < d:
+        if diag.offsetc - diag.offseta < 10 or (diag.support() < 1.0):
+          can_add_end = False
+          break
+        diag_index -= 1
+        if diag_index == -1:
+          cur_len = d
+          continue
+        diag = self.diagonals[diag_index]
+        cur_len += diag.offsetc - diag.offseta
+      if can_add_end:
+        return last.rectangle.e2.seq[last.offsetd + K:] 
+    return ""
+
+  def get_midle_seq(self):
+    seq = ""
+    for diag in self.diagonals:
+      seq += diag.rectangle.e1.seq[diag.offseta:diag.offsetc]
+    return seq
   def get_seq_for_contig(self, K, d, is_sc):
     if is_sc:
       CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
@@ -154,12 +224,22 @@ class BGraph(Abstract_Graph):
         self.diagonals.remove(diag)
   
   def path_expand(self, L):
+    should_connect = dict()
     for edge_id, edge in self.es.items():
-      if edge.length() > L and edge.eid == 8024:
-        self.edge_path_expand(edge)
+      if edge.length() > L:
+        self.edge_path_expand(edge, should_connect, L)
+    for edge_id, path in should_connect.items():
+      conj_path = []
+      i = len(path) -1
+      while i >= 0:
+        conj_path.append(path[i].conj)
+        i -= 1
+      should_connect[path[0].conj.eid] = conj_path
+    for edge_id, path in should_connect.items():
+          print "CONNECT PATHS", [e.eid for e in path]
+    return should_connect
 
-  def edge_path_expand(self, begin_edge):
-    print "EDGE", begin_edge.eid
+  def edge_path_expand(self, begin_edge, should_connect, L):
     second_edges = []
     prev_first = None
     first = begin_edge.diagonals[0].rectangle.e2
@@ -172,53 +252,59 @@ class BGraph(Abstract_Graph):
             break
           first = second_edges.pop(0)
       second_edges.append(diag.rectangle.e2)
-    info_from_begin_edge = list(second_edges)
+    if len(second_edges) == 0:
+      return
     v2 = begin_edge.v2
-    should_expand = True
-    expand_edges = []
-    while should_expand:
-      next_edges = []
-      copy_first = first
-      copy_prev_first = prev_first
-      copy_second_edges = list(second_edges)
-      print first, prev_first, copy_first, copy_prev_first, "second\n", second_edges
-      for edge in v2.out:
-        print "edge", edge.eid
-        first = copy_first
-        prev_first = copy_prev_first
-        second_edges = list(copy_second_edges)
-        can_be_next = True
-        for diag in edge.diagonals:
-          if diag.rectangle.e1 != first and diag.rectangle.e1 != prev_first:
-            print "can't go next", edge.eid, diag, first, prev_first
-            can_be_next = False
-            break
-          else:
-            if not first and len(second_edges) > 0:
+    paths = self.expand(v2, second_edges, first, prev_first, [begin_edge], [])
+    print "edge", begin_edge.eid, len(paths)
+    for path in paths:
+      print [e.eid for e in path]
+    if len(paths) == 1:
+      should_add = False
+      path = paths[0]
+      for e in path:
+        if e != begin_edge and e.length() > L:
+          should_add = True
+      if should_add:      
+        should_connect[begin_edge.eid] = path
+    return
+ 
+  def expand(self, v2, second_edges, first, prev_first, path, paths):
+    extend_edges = []
+    end_edges = []
+    for next_edge in v2.out:
+      extend = self.can_expand(next_edge, second_edges, first, prev_first) 
+      print "can_expand", next_edge.eid, second_edges, first.eid, prev_first.eid, extend
+      if not extend:
+        continue
+      if len(extend[1]) == 0 and not extend[2]:
+        new_path = list(path)
+        new_path.append(next_edge)
+        paths.append(new_path)
+      elif len(extend[1]) >= 1:
+        extend_edges.append(extend)
+    for next_extend in extend_edges:
+      (n_edge, n_second_edges, n_first, n_prev_first) = next_extend
+      new_path = list(path)
+      new_path.append(n_edge)
+      self.expand(n_edge.v2, n_second_edges, n_first, n_prev_first, new_path, paths)
+    return paths
+      
+
+  def can_expand(self, edge, second_edges, first, prev_first):    
+      second_edges = list(second_edges)
+      for diag in edge.diagonals:
+        if diag.rectangle.e1 != first and diag.rectangle.e1 != prev_first:
+          return None
+        else:
+          if diag.rectangle.e1 == first:
+            prev_first = first
+            while prev_first.eid == first.eid:
+              if len(second_edges) == 0:
+                return (edge, second_edges, None, prev_first)
               first = second_edges.pop(0)
-            if diag.rectangle.e1 == first:
-              prev_first = first
-              while prev_first.eid == first.eid:
-                if len(second_edges) == 0:
-                  first = None
-                  break
-                first = second_edges.pop(0)
-            second_edges.append(diag.rectangle.e2)
-            print "first ", first, " prev_first ", prev_first, " second\n",second_edges
-        if can_be_next:
-          next_edges.append(edge)
-      if len(next_edges) == 1 and next_edges[0] not in expand_edges:
-        expand_edges.append(next_edges[0])
-        v2 = next_edges[0].v2
-      else:
-        print "can't expand", next_edges
-        should_expand = False
-
-    if len(expand_edges) != 0:
-      print "expand_edges", [e.eid for e in expand_edges]
-
-      
-      
+      return (edge, second_edges, first, prev_first)
+    
     
   def __try_delete_bv(self, v):
     if len(v.out) == 0 and len(v.inn) == 0 and v.key in self.vs:

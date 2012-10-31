@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!usr/bin/python
 
 ###########################################################################################
 ###
@@ -129,8 +129,8 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
     maxbgraph.delete_loops(ingraph.K, 1000,10)
     maxbgraph.condense()"""
     outgraph = maxbgraph.project(output_path, is_sc)
-    maxbgraph.path_expand(1000) 
-    outgraph.fasta(open(os.path.join(output_path,"rectangles.fasta"),"w"))
+    should_connect = maxbgraph.path_expand(500) 
+    outgraph.fasta_for_long_contigs(ingraph.K, maxbgraph.d, is_sc, open(os.path.join(output_path,"rectangles.fasta"),"w"), should_connect)
     #maxbgraph.check_begin_ends(ingraph.K, 1000)
     #should_connect = maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10) 
     #outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops_additional_paired_info.fasta"),"w"), should_connect)

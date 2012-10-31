@@ -98,6 +98,35 @@ class Graph(Abstract_Graph):
         if result_loop:
           edges_before_loop[e.eid] = result_loop
     return edges_before_loop
+  
+  def fasta_for_long_contigs(self, K, d, is_sc, stream=sys.stdout, should_connect = dict()):
+        in_paths = []
+        for edge_id, path in should_connect.items():
+          in_paths.append(path[-1].eid)
+        contig_id = 0 
+        for edge in self.es.itervalues():
+            if edge.conj.eid <= edge.eid: # non-conjugate
+              if edge.eid in should_connect:
+                print "PRINTING", edge.eid
+                path = should_connect[edge.eid]
+                seq = path[0].get_begin_seq(K, d, is_sc)
+                for be in path:
+                  seq += be.get_midle_seq()
+                seq += path[-1].get_end_seq(K, d, is_sc)
+                print >>stream,  '>contig_%d_l=%06d_long' % (edge.eid, len(seq))
+                l = len(seq)
+                for l in xrange(0, l, 60):
+                    print >>stream, seq[l:l + 60]
+                continue
+              if edge.eid in in_paths:
+                continue     
+              for id_contig, contig in enumerate(edge.seq.split('N')):
+                    if not contig: continue
+                    l = len(contig)
+                    print >>stream, '>contig_%d_%d_%d_%d_l=%06d' % (contig_id, edge.eid, edge.conj.eid, id_contig, l)
+                    contig_id += 1
+                    for l in xrange(0, l, 60):
+                        print >>stream, contig[l:l + 60]
 
   def fasta(self, stream=sys.stdout):
     contig_id = 0 
