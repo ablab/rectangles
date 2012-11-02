@@ -50,10 +50,20 @@ class RectangleSet(object):
 
     def bgraph(self, threshold):
         bg = BGraph(self.graph, self.d, self.test_utils)
+        count_true_diags = 0
+        count_false_diags = 0
+        count_unaligned_diags = 0
         for diag in self.__diags(threshold):
-            self.test_utils.is_true_diagonal(diag)
+            is_true_diag = self.test_utils.is_true_diagonal(diag)
+            if is_true_diag == self.test_utils.TRUE_DIAG:
+              count_true_diags +=1 
+            elif is_true_diag == self.test_utils.FALSE_DIAG:
+              count_false_diags += 1
+            else:
+              count_unaligned_diags += 1
             self.test_utils.add_to_diags(diag)
             bg.add_diagonal(diag)
+        self.test_utils.logger.info("true diag = "+ str(count_true_diags) + " false diag = " + str(count_false_diags) + " unanligned = " + str(count_unaligned_diags) + "\n")
         return bg
     
     def bgraph_from_genome(self):
@@ -71,9 +81,12 @@ class RectangleSet(object):
 
     def __diags(self, threshold = 0.0):
         assert self.ranking, "rank/filter first"
+        diag_file = open("diagonals_all.txt","w")
         for d in self.ranking:
             if d.support() > threshold:
+                diag_file.write(str(d.rectangle.e1.eid) + " " + str(d.rectangle.e2.eid ) + " " + str(d.D) + "\n")
                 yield d
+        diag_file.close()
 
     def __build_from_graph(self):
         for e1 in self.graph.es.itervalues():

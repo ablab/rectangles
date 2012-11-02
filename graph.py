@@ -100,14 +100,20 @@ class Graph(Abstract_Graph):
     return edges_before_loop
   
   def fasta_for_long_contigs(self, K, d, is_sc, stream=sys.stdout, should_connect = dict()):
-        in_paths = []
+        in_paths = set()
         for edge_id, path in should_connect.items():
-          in_paths.append(path[-1].eid)
+          in_paths.add(path[-1].eid)
+          in_paths.add(path[-1].conj.eid)
+          in_paths.add(path[0].eid)
+          in_paths.add(path[0].conj.eid)
+          #for e in path:
+          #  in_paths.add(e.eid)
+          #  in_paths.add(e.conj.eid)
         contig_id = 0 
         for edge in self.es.itervalues():
             if edge.conj.eid <= edge.eid: # non-conjugate
               if edge.eid in should_connect:
-                print "PRINTING", edge.eid
+                print "PRINTING", edge.eid, [e.eid for e in should_connect[edge.eid]]
                 path = should_connect[edge.eid]
                 seq = path[0].get_begin_seq(K, d, is_sc)
                 for be in path:

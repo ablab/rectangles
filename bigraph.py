@@ -235,8 +235,18 @@ class BGraph(Abstract_Graph):
         conj_path.append(path[i].conj)
         i -= 1
       should_connect[path[0].conj.eid] = conj_path
+      print edge_id, [e.eid for e in path], path[0].conj.eid, [e.eid for e in conj_path]
+    #for edge_id, path in should_connect.items():
+    #      print "CONNECT PATHS", [e.eid for e in path]
+    """for edge_id, path in should_connect.items():
+      if path[-1].eid in should_connect:
+        print "find path", edge_id, path[-1].eid, [e.eid for e in path],[e.eid for e in should_connect[path[-1].eid]]
+        next_path = should_connect[path[-1].eid]
+        del should_connect[path[-1].eid]
+        path += next_path[1:]
     for edge_id, path in should_connect.items():
-          print "CONNECT PATHS", [e.eid for e in path]
+          print "NEW CONNECT PATHS", [e.eid for e in path]"""
+    
     return should_connect
 
   def edge_path_expand(self, begin_edge, should_connect, L):
@@ -256,9 +266,9 @@ class BGraph(Abstract_Graph):
       return
     v2 = begin_edge.v2
     paths = self.expand(v2, second_edges, first, prev_first, [begin_edge], [])
-    print "edge", begin_edge.eid, len(paths)
-    for path in paths:
-      print [e.eid for e in path]
+    #print "edge", begin_edge.eid, len(paths)
+    #for path in paths:
+    #  print [e.eid for e in path]
     if len(paths) == 1:
       should_add = False
       path = paths[0]
@@ -274,7 +284,7 @@ class BGraph(Abstract_Graph):
     end_edges = []
     for next_edge in v2.out:
       extend = self.can_expand(next_edge, second_edges, first, prev_first) 
-      print "can_expand", next_edge.eid, second_edges, first.eid, prev_first.eid, extend
+      #print "can_expand", next_edge.eid, second_edges, first.eid, prev_first.eid, extend
       if not extend:
         continue
       if len(extend[1]) == 0 and not extend[2]:
@@ -637,16 +647,17 @@ class BGraph(Abstract_Graph):
             # TODO: check (x == u and w == z)
             beA = BEdge(u, w, None)
             beA.diagonals = be1.diagonals + be2.diagonals
-            first_connect =  self.test_utils.should_join(be1.diagonals[-1], be2.diagonals[0])
-            second_connect =  self.test_utils.should_join(be3.diagonals[-1],be4.diagonals[0]) 
-            if first_connect:
-              self.test_utils.join_correct += 1
-            else:
-              self.test_utils.join_incorrect += 1
-            if second_connect:
-              self.test_utils.join_correct += 1
-            else:
-              self.test_utils.join_incorrect +=1
+            if self.test_utils:
+              first_connect =  self.test_utils.should_join(be1.diagonals[-1], be2.diagonals[0])
+              second_connect =  self.test_utils.should_join(be3.diagonals[-1],be4.diagonals[0]) 
+              if first_connect:
+                self.test_utils.join_correct += 1
+              else:
+                self.test_utils.join_incorrect += 1
+              if second_connect:
+                self.test_utils.join_correct += 1
+              else:
+                self.test_utils.join_incorrect +=1
             beB = BEdge(x, z, None)
             beB.diagonals = be3.diagonals + be4.diagonals
             conjugate(beA, beB)
@@ -678,11 +689,38 @@ class BGraph(Abstract_Graph):
   def project(self, outpath, is_sc):
         log = open(os.path.join(outpath,"mis_log.txt"),"w")    
         g = graph.Graph()
+        count_correct_rectangles = 0
+        count_part_correct_rectangles = 0
+        count_not_correct_rectanlges = 0
+        count_part_unaligned_correct = 0
+        count_unaligned = 0
         for key, be in self.es.items():
             # v ---------be--------> w
             # y <-----be.conj------- x
             v, w = be.v1, be.v2
             x, y = be.conj.v1, be.conj.v2
+            correct_diag = 0
+            unalign_diag = 0
+            false_diag = 0
+            for diag in be.diagonals:
+              if self.test_utils:
+                is_true_diag = self.test_utils.is_true_diagonal(diag)
+                if is_true_diag == self.test_utils.TRUE_DIAG:
+                  correct_diag +=1
+                elif is_true_diag == self.test_utils.UNALIGNED_DIAG:
+                  unalign_diag +=1
+                else:
+                  false_diag += 1
+            if correct_diag > 0 and false_diag == 0 and unalign_diag == 0:
+              count_correct_rectangles += 1
+            elif correct_diag > 0 and false_diag == 0:
+              count_part_unaligned_correct += 1
+            elif correct_diag > 0:
+              count_part_correct_rectangles += 1
+            elif false_diag == 0:
+              count_unaligned += 1
+            elif false_diag > 0:
+              count_not_correct_rectanlges +=1
             #assert be != be.conj
             #assert v != w
             #assert v != x
@@ -695,13 +733,15 @@ class BGraph(Abstract_Graph):
             g.add_edge(be.eid, v.vid, w.vid, len(seq) - self.graph.K, be.conj.eid)
             g.add_seq(be.eid, seq)
             g.add_cvr(be.eid, cvr)
-            
+             
             log.write("\nmisassemble " + str(be.eid) + " "+ str(be.conj.eid)+ " "+ str(len(seq)))
             accum = 0
             for diag in be.diagonals:
                 accum += diag.offsetc - diag.offseta
                 log.write("\n" +  str(diag.offsetc - diag.offseta) + " " + str( accum) + " "+str(  diag.support()) + " diag.e1.len " +  str(diag.rectangle.e1.len) + " diag.e2.len " + str(diag.rectangle.e2.len)+ " e1.eid " + str(diag.rectangle.e1.eid) + " e2.eid " + str(diag.rectangle.e2.eid) )
         log.close()    
+        if self.test_utils:
+          self.test_utils.logger.info("count_correct_rectangles  = " + str(count_correct_rectangles) + "\ncount_part_unaligned_correct = " + str(count_part_unaligned_correct) + "\ncount_part_correct_rectangles  = " + str(count_part_correct_rectangles) + "\ncount_unaligned = " + str(count_unaligned) + "\ncount_not_correct = " + str(count_not_correct_rectanlges) + "\n\n") 
         g.update_K()
         maxv = BVertex.vid
         maxe = BEdge.eid

@@ -60,6 +60,9 @@ class TestUtils(object):
     else:
       self.ref_info = dict()
       self.has_ref_info = False
+    self.UNALIGNED_DIAG = 0
+    self.TRUE_DIAG = 1
+    self.FALSE_DIAG = 2
     self.unaligned = 0
     self.not_true_diags = 0
     self.true_diags = 0
@@ -112,13 +115,13 @@ class TestUtils(object):
     e2 = rect.e2
     D = diag.D
     if e1.eid == e2.eid:
-      return True
+      return self.TRUE_DIAG
     e1_ref_infos = self.__get_ref_info(e1.eid)
     e2_ref_infos = self.__get_ref_info(e2.eid)
     if len(e1_ref_infos) == 0 or len(e2_ref_infos) == 0:
       self.unaligned += 1
       #return False
-      return True
+      return self.UNALIGNED_DIAG
     true_diag = False
     for e1_ref_info in e1_ref_infos:
       for e2_ref_info in e2_ref_infos:
@@ -140,7 +143,8 @@ class TestUtils(object):
       print "D", D
 
     print "diag support", diag.support(), "len", diag.offsetc- diag.offseta"""
-    return true_diag
+    
+    return self.TRUE_DIAG if true_diag else self.FALSE_DIAG
 
   def should_join(self, diag1, diag2):
      rect1 = diag1.rectangle
