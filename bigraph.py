@@ -223,6 +223,37 @@ class BGraph(Abstract_Graph):
       if diag in self.diagonals:
         self.diagonals.remove(diag)
   
+  def use_first_paired_info(self, L, additional_prd):
+    long_edges = set()
+    used_paires = set()
+    connect_edges = set()
+    count_correct_scaffolds = 0
+    count_incorrect_scaffolds = 0
+    for edge_id, edge in self.es.items():
+      if edge.length() > L:
+        long_edges.add(edge)
+    for e1 in long_edges:
+      for e2 in long_edges:
+        first_rectangle = e1.diagonals[-1].rectangle
+        second_rectangle = e2.diagonals[0].rectangle
+        e11 = first_rectangle.e1.eid
+        e12 = first_rectangle.e2.eid
+        e21 = second_rectangle.e1.eid
+        e22 = second_rectangle.e2.eid
+        if (e12, e21) in additional_prd: #or (e11, e22) in additional_prd or (e11, e21) in additional_prd or (e12, e22) in additional_prd:
+          (D, weight, delta) = additional_prd[(e12,e21)][0]
+          if not self.graph.is_connected(first_rectangle.e2.v2, second_rectangle.e1, 10):
+            count_correct_scaffolds +=1
+          if len(first_rectangle.e2.v2.out) != 0 or len(second_rectangle.e1.v1.inn) != 0:
+            continue
+          used_paires.add((e12, e21))
+          count_incorrect_scaffolds +=1
+          if D - first_rectangle.e2.len > 0 and D - first_rectangle.e2.len < 100:
+            print "SHOULD CONNECT", (e1.eid, e2.eid), (e12, e21), additional_prd[(e12, e21)], D - first_rectangle.e2.len, "\n", first_rectangle.e2.seq[-55:], "\n", second_rectangle.e1.seq[:55]
+            connect_edges.add((e1.eid, e2.eid))
+    self.test_utils.logger.info("count_correct_scaffolds " + str(count_correct_scaffolds) + " " + str(count_incorrect_scaffolds) + " " + str(len(used_paires)) + "\n")
+    return connect_edges 
+
   def path_expand(self, L):
     should_connect = dict()
     for edge_id, edge in self.es.items():
@@ -248,7 +279,61 @@ class BGraph(Abstract_Graph):
           print "NEW CONNECT PATHS", [e.eid for e in path]"""
     
     return should_connect
+  
+  def use_additional_paired_info(self, paired_info, L, threshold):
+    should_connect_edges = dict()
+    used_edges = set()
+    for (e1, e2), infos in paired_info.items():
+      if e1.len < L or e2.len < L:
+        continue
+      else:
+        e1_rectangles = set()
+        e2_rectangles = set()
+        for e_id, bes in self.es.items():
+          for diag in bes.diagonals:
+            if diag.rectangle.e1.eid == e1.eid and diag.offseta == 0:
+              e1_rectangles.add(bes)
+              #print diag.rectangle.e1.eid, diag.rectangle.e2.eid
+            elif diag.rectangle.e1.eid == e2.eid and diag.offseta == 0:
+              e2_rectangles.add(bes)
+              #print diag.rectangle.e1.eid, diag.rectangle.e2.eid
+        for be1 in e1_rectangles:
+          for be2 in e2_rectangles:
+            if not self.is_connected(be1.v2, be2, threshold):
+              continue
+            else:
+              paths = self.get_paths(be1.v2, be2, threshold)
+              if len(paths) != 1:
+                continue
+              else:
+                path = paths[0]
+                add_path = True
+                if be1.eid in used_edges or be2.eid in used_edges or be1.conj.eid in used_edges or be2.conj.eid in used_edges:
+                  add_path = False
+                used_edges.add(be1.eid)
+                used_edges.add(be1.conj.eid)
+                used_edges.add(be2.conj.eid)
+                used_edges.add(be2.eid)
+                for e in path:
+                  if e.eid in used_edges:
+                    add_path = False
+                    break
+                  else:
+                    used_edges.add(e.eid)
+                if not add_path:
+                  continue
+                should_connect_edges[be1.eid] = [be1] + path + [be2]
+                conj_path = [e.conj for e in path]
+                conj_path.reverse()
+                should_connect_edges[be1.conj.eid] = [be2.conj] + conj_path + [be1.conj]
+                print "connect", be1.eid, [e.eid for e in should_connect_edges[be1.eid]], be1.conj.eid, [e.eid for e in should_connect_edges[be1.conj.eid]]
+                #should_connect_edges.append([be1] + path + [be2])
 
+    print "CONNECT"
+    for eid, path in should_connect_edges.items():
+      print eid, [e.eid for e in path]
+    return should_connect_edges  
+  
   def edge_path_expand(self, begin_edge, should_connect, L):
     second_edges = []
     prev_first = None
@@ -775,7 +860,7 @@ class BGraph(Abstract_Graph):
                 assert this.key2 == next.key1, (this, "->", next)
 
   def build_missing_rectangles(self, K, rectangles):
-    #return
+    return
     threshold = self.d
     self.test_utils.logger.info( "treshold " + str( threshold))
     count_ovelaps = 0
@@ -817,7 +902,7 @@ class BGraph(Abstract_Graph):
 
       for paired_paths in all_paired_paths:
         (best_support, best_len, best_rectangles, best_diags, best_path) = self.choose_best_path(paired_paths[0], rectangles, paired_paths[1], paired_paths[2], self.d, added_paths)
-        if best_support/best_len > 0.001 and best_support/best_len > the_best_support:
+        if best_support/best_len >= 0.0 and best_support/best_len > the_best_support:
           the_best_support = best_support/best_len
           the_best_path = (best_support, best_len, best_rectangles, best_diags, best_path)
       if the_best_path:
@@ -880,9 +965,9 @@ class BGraph(Abstract_Graph):
           diags.append(rect_diag)
           rectangles.append(rectangle)
           rectangeles_set.use_prd_diag(rect_diag)
-          if rect_diag.prd_support < 0.00001 and (ed2.len > 10 and ed1.len > 10):
-            make_less_N50 = True
-            continue
+          #if rect_diag.prd_support < 0.00001 and (ed2.len > 10 and ed1.len > 10):
+          #  make_less_N50 = True
+          #  continue
           path_support += rect_diag.prd_support 
           if ed2.len - second_shift < ed1.len - first_shift:
             pos_second_path += 1

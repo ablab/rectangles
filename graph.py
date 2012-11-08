@@ -102,24 +102,27 @@ class Graph(Abstract_Graph):
   def fasta_for_long_contigs(self, K, d, is_sc, stream=sys.stdout, should_connect = dict()):
         in_paths = set()
         for edge_id, path in should_connect.items():
-          in_paths.add(path[-1].eid)
+          """in_paths.add(path[-1].eid)
           in_paths.add(path[-1].conj.eid)
           in_paths.add(path[0].eid)
-          in_paths.add(path[0].conj.eid)
-          #for e in path:
-          #  in_paths.add(e.eid)
-          #  in_paths.add(e.conj.eid)
+          in_paths.add(path[0].conj.eid)"""
+          for e in path:
+            in_paths.add(e.eid)
+            in_paths.add(e.conj.eid)
         contig_id = 0 
         for edge in self.es.itervalues():
             if edge.conj.eid <= edge.eid: # non-conjugate
               if edge.eid in should_connect:
+                str_id = ""
                 print "PRINTING", edge.eid, [e.eid for e in should_connect[edge.eid]]
                 path = should_connect[edge.eid]
-                seq = path[0].get_begin_seq(K, d, is_sc)
+               # seq = path[0].get_begin_seq(K, d, is_sc)
+                seq = ""
                 for be in path:
-                  seq += be.get_midle_seq()
-                seq += path[-1].get_end_seq(K, d, is_sc)
-                print >>stream,  '>contig_%d_l=%06d_long' % (edge.eid, len(seq))
+                  seq += be.get_seq_for_contig(K, d, is_sc) + "NNN"#be.get_midle_seq()
+                  str_id += "_" + str(be.eid) + "_" 
+                #seq += path[-1].get_end_seq(K, d, is_sc)
+                print >>stream,  '>contig_%d_l=%06d_long%s' % (edge.eid, len(seq), str_id)
                 l = len(seq)
                 for l in xrange(0, l, 60):
                     print >>stream, seq[l:l + 60]

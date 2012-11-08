@@ -12,22 +12,33 @@ import graph
 
 class RectangleSet(object):
 
-    def __init__(self, graph, d, test_utils = None, prd_file_name = None, config = None):
+    def __init__(self, graph, d, test_utils = None, prd_file_name = None, first_prd_file_name = None, config = None):
         self.graph = graph
         self.d = d
         self.prd = dict()
         self.config = config
+        self.additional_prd = dict() 
         if prd_file_name:
           self.__get_prd(prd_file_name)
+        if first_prd_file_name:
+          self.__get_additional_prd(first_prd_file_name)
         self.rectangles = {} # (e1, e2) -> Rectangle
         self.logger = logging.getLogger('rectangles')
         self.test_utils = test_utils
         self.not_used_prd_support = dict()
-
+        
     def __get_prd(self, prd_file_name):
       for e1id, e2id, D, weight, delta in saveparser.prd(prd_file_name):
         self.prd[(e1id, e2id)] = (D, weight, delta + 2)
- 
+    
+    def __get_additional_prd(self, prd_file_name):
+      for e1id, e2id, D, weight, delta in saveparser.prd(prd_file_name):
+        if (e1id, e2id) not in self.prd:
+          if (e1id, e2id) not in self.additional_prd:
+            self.additional_prd[(e1id, e2id)] = []   
+            print "additional prd",  (e1id, e2id)
+          self.additional_prd[(e1id, e2id)].append((D, weight, delta))
+
 
     def filter_without_prd(self):
       self.__build_from_graph()
@@ -124,6 +135,7 @@ class RectangleSet(object):
                 diag.inc_prd_support(D, weight, delta, config)
                 if diag != diag.conj:
                     diag.conj.inc_prd_support(D - e1.len + e2.len, weight, delta, config) # TODO: check if prd is symmetric or not
+        #print self.not_used_prd_support
      
     def use_prd_diag(self, diag):
         rect = diag.rectangle
