@@ -109,7 +109,7 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
         maxbgraph = bgraph
         maxthreshold = threshold
 
-    #maxgraph.fasta(open(os.path.join(output_path, 'rectangles.fasta'), 'w'))
+    maxgraph.fasta(open(os.path.join(output_path, 'rectangles.fasta'), 'w'))
     #maxgraph.save(os.path.join(output_path, 'rectangles'))
     maxbgraph.save(output_path, ingraph.K)
     maxbgraph.check_tips(ingraph.K)
@@ -119,7 +119,7 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
     maxbgraph.delete_loops(ingraph.K, 1000, 10)
     maxbgraph.condense()
     outgraph = maxbgraph.project(output_path, is_sc)
-    #outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops.fasta"),"w"))
+    outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops.fasta"),"w"))
     #outgraph.save(os.path.join(output_path,"graph_before_missing_loop"))
     
     print "lengths of small bushes",len(edges_before_loop_DG.keys()) 
@@ -134,22 +134,16 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
     maxbgraph.delete_loops(ingraph.K, 1000,10)
     maxbgraph.condense()"""
     outgraph = maxbgraph.project(output_path, is_sc)
+    outgraph.fasta(open(os.path.join(output_path, "after_deleting_big_loops.fasta"), "w"))
     additional_paired_info = dict()#maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10)
     should_connect = maxbgraph.path_expand(5000)# or  maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10) 
-    for eid, path in should_connect.items():
-      additional_paired_info[eid] = path
-    print "Last connect"
-    for eid, path in additional_paired_info.items():
-      print [e.eid for e in path]
-    should_connect_by_first_pair_info = maxbgraph.use_first_paired_info(0, rs.additional_prd)
+    should_connect_by_first_pair_info = maxbgraph.use_scaffold_paired_info(2 * maxbgraph.d, rs.additional_prd)
     for (e1id, e2id) in should_connect_by_first_pair_info:
       if e1id not in additional_paired_info and maxbgraph.es[e1id].conj.eid not in additional_paired_info and e2id not in additional_paired_info:
         additional_paired_info[e1id] = [maxbgraph.es[e1id], maxbgraph.es[e2id]]
         additional_paired_info[maxbgraph.es[e1id].conj.eid] = [maxbgraph.es[e2id].conj, maxbgraph.es[e1id].conj]
-
-    outgraph.fasta(open(os.path.join(output_path, "rectangles.fasta"), "w"))
-    outgraph.fasta_for_long_contigs(ingraph.K, maxbgraph.d, is_sc, open(os.path.join(output_path,"rectangles_extend.fasta"),"w"), should_connect)
-    outgraph.fasta_for_long_contigs(ingraph.K, maxbgraph.d, is_sc, open(os.path.join(output_path, "rectangles_extend_additioanl_paired_info.fasta"), "w"), additional_paired_info)
+    #additional_paired_info = dict()
+    outgraph.fasta_for_long_contigs(ingraph.K, maxbgraph.d, is_sc, open(os.path.join(output_path,"rectangles_extend.fasta"),"w"), should_connect, additional_paired_info)
     #maxbgraph.check_begin_ends(ingraph.K, 1000)
     #should_connect = maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10) 
     #outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops_additional_paired_info.fasta"),"w"), should_connect)

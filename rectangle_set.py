@@ -34,10 +34,15 @@ class RectangleSet(object):
     def __get_additional_prd(self, prd_file_name):
       for e1id, e2id, D, weight, delta in saveparser.prd(prd_file_name):
         if (e1id, e2id) not in self.prd:
-          if (e1id, e2id) not in self.additional_prd:
-            self.additional_prd[(e1id, e2id)] = []   
-            print "additional prd",  (e1id, e2id)
-          self.additional_prd[(e1id, e2id)].append((D, weight, delta))
+          e1= self.graph.es[e1id]
+          e2 = self.graph.es[e2id]
+          if len(e1.v2.out) != 0 or len(e2.v1.inn) != 0:
+            continue
+          e1_len = e1.len
+          if D - e1_len > 0 and D - e1_len < 100:
+            if (e1id, e2id) not in self.additional_prd:
+              self.additional_prd[(e1id, e2id)] = []   
+            self.additional_prd[(e1id, e2id)].append((D, weight, delta))
 
 
     def filter_without_prd(self):
