@@ -37,82 +37,38 @@ class BEdge(Abstract_Edge):
     return length
   
   def get_begin_seq(self, K, d, is_sc):
-    first = self.diagonals[0]
-    return first.rectangle.e1.seq[:first.offseta]
-    if is_sc:
-      CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
-      CUT_LENGTH_THRESHOLD = 5.0
-      MIN_LENGTH = 4 * d
-    else:
-      CUT_LENGTH_THRESHOLD = 3
-      CUT_THRESHOLD = 0.0
-      MIN_LENGTH = 0
     (seq1, seq2) = self.get_paired_seq(K, d)
-    first = self.diagonals[0]
-    if len(seq1) > MIN_LENGTH:
-      cur_len = 0
-      diag_index = 0
-      diag = self.diagonals[diag_index]
-      can_add_begin = True
-      while cur_len < d:
-        if diag.offsetc - diag.offseta < CUT_LENGTH_THRESHOLD or (diag.support() < CUT_THRESHOLD):
-          can_add_begin = False
-          break
-        diag_index += 1
-        if diag_index == len(self.diagonals):
-          cur_len = d
-          continue
-        diag = self.diagonals[diag_index]
-        cur_len += diag.offsetc - diag.offseta
-      
-      if can_add_begin:
-        return first.rectangle.e1.seq[:first.offseta]
-    return ""
-
+    seq = ''.join(map(lambda x, y: x if x != 'N' else (y if y != 'N' else 'N'), seq1, seq2)).strip('N')
+    seq = seq.split(self.get_midle_seq())[0]
+    print seq
+    return seq
+   # first = self.diagonals[0]
+    #return first.rectangle.e1.seq[:first.offseta]
+   
   def get_end_seq(self, K, d, is_sc):
-    
-    if is_sc:
-      CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
-      CUT_LENGTH_THRESHOLD = 5.0
-      MIN_LENGTH = 4 * d
-    else:
-      CUT_LENGTH_THRESHOLD = 3
-      CUT_THRESHOLD = 0.0
-      MIN_LENGTH = 0
     (seq1, seq2) = self.get_paired_seq(K, d)
+    seq = ''.join(map(lambda x, y: x if x != 'N' else (y if y != 'N' else 'N'), seq1, seq2)).strip('N')
+    seq = seq.split(self.get_midle_seq())[1]
+    print seq
+    return seq
+    (seq1, seq2) = self.get_paired_seq(K, d)
+    seq = ''.join(map(lambda x, y: x if x != 'N' else (y if y != 'N' else 'N'), seq1, seq2)).strip('N')
     last = self.diagonals[-1]
-    return seq2[-d:] + last.rectangle.e2.seq[last.offsetd+K:]
-    if len(seq1) > MIN_LENGTH:
-      cur_len = 0
-      diag_index = len(self.diagonals) -1
-      diag = self.diagonals[diag_index]
-      can_add_end = True
-      while cur_len < d:
-        if diag.offsetc - diag.offseta < 10 or (diag.support() < 1.0):
-          can_add_end = False
-          break
-        diag_index -= 1
-        if diag_index == -1:
-          cur_len = d
-          continue
-        diag = self.diagonals[diag_index]
-        cur_len += diag.offsetc - diag.offseta
-      if can_add_end:
-        return last.rectangle.e2.seq[last.offsetd + K:] 
-    return ""
-
+    return seq[-d:] + last.rectangle.e2.seq[last.offsetd+K:]
+   
   def get_midle_seq(self):
     seq = ""
     for diag in self.diagonals:
       seq += diag.rectangle.e1.seq[diag.offseta:diag.offsetc]
     return seq
+
   def get_seq_for_contig(self, K, d, is_sc):
     if is_sc:
       CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
       CUT_LENGTH_THRESHOLD = 5.0
       MIN_LENGTH = 4 * d
     else:
-      CUT_LENGTH_THRESHOLD = 3
+      CUT_LENGTH_THRESHOLD = 5
       CUT_THRESHOLD = 0.0
       MIN_LENGTH = 0
     (seq1, seq2) = self.get_paired_seq(K, d)
@@ -140,7 +96,7 @@ class BEdge(Abstract_Edge):
       diag = self.diagonals[diag_index]
       can_add_end = True
       while cur_len < d:
-        if diag.offsetc - diag.offseta < 10 or (diag.support() < 1.0):
+        if diag.offsetc - diag.offseta < CUT_LENGTH_THRESHOLD or (diag.support() < CUT_THRESHOLD):
           can_add_end = False
           break
         diag_index -= 1
@@ -155,8 +111,6 @@ class BEdge(Abstract_Edge):
         return seq + last.rectangle.e2.seq[last.offsetd + K:] 
       if can_add_begin:
         return first.rectangle.e1.seq[:first.offseta] + seq
-
-
     seq1 = cStringIO.StringIO()
     for this in self.diagonals:
       seq1.write(this.rectangle.e1.seq[this.offseta : this.offsetc])
@@ -334,14 +288,25 @@ class BGraph(Abstract_Graph):
       if edge.length() > L:
         self.edge_path_expand(edge, should_connect, L)
     for edge_id, path in should_connect.items():
+          print "CONNECT PATHS",edge_id, [e.eid for e in path]
+    to_delete = set()
+    for edge_id, path in should_connect.items():
+      if path[-1].eid in should_connect:
+        to_delete.add(edge_id)
+    for eid in to_delete:
+      del should_connect[eid]
+    conj_should_connect = dict()
+    for edge_id, path in should_connect.items():
       conj_path = []
       i = len(path) -1
       while i >= 0:
         conj_path.append(path[i].conj)
         i -= 1
-   # if conj_path[-1].eid not in should_connect and conj_path[0].eid not in should_connect:
-    should_connect[path[0].conj.eid] = conj_path
-    used = set()
+      #if conj_path[-1].eid not in should_connect and conj_path[0].eid not in should_connect:
+      conj_should_connect[path[0].conj.eid] = conj_path
+      conj_should_connect[path[0].eid] = path
+
+    """used = set()
     to_delete = set()
     for edge_id, path in should_connect.items():
       for e in [path[0], path[-1]]:
@@ -354,18 +319,18 @@ class BGraph(Abstract_Graph):
       if eid in should_connect:
         del should_connect[eid]
     for edge_id, path in should_connect.items():
-          print "CONNECT PATHS", [e.eid for e in path]
+          print "CONNECT PATHS", [e.eid for e in path]"""
     
     """for edge_id, path in should_connect.items():
       if path[-1].eid in should_connect:
         print "find path", edge_id, path[-1].eid, [e.eid for e in path],[e.eid for e in should_connect[path[-1].eid]]
         next_path = should_connect[path[-1].eid]
         del should_connect[path[-1].eid]
-        path += next_path[1:]
-    for edge_id, path in should_connect.items():
-          print "NEW CONNECT PATHS", [e.eid for e in path]"""
+        path += next_path[1:]"""
+    for edge_id, path in conj_should_connect.items():
+          print "NEW CONNECT PATHS",edge_id, [e.eid for e in path]
     
-    return should_connect
+    return conj_should_connect
   
   def use_additional_paired_info(self, paired_info, L, threshold):
     should_connect_edges = dict()
