@@ -70,8 +70,36 @@ class Abstract_Graph(object):
     for v in visited_vs:
       if not self.is_connected(v, long_end, threshold):
         return NO_LOOPS
-    return (edge.eid, long_end.eid, visited_es, self.get_paths(edge.v1, long_end, threshold + 1, True)[0], visited_vs)
+    paths = self.get_paths(edge.v1, long_end, threshold + 1, False)
+    best_path = paths[0]
+    best_len = self.path_len(best_path)
+    for path in paths:
+      if self.path_len(path) > best_len:
+        if path[0] != edge:
+          continue
+        long_edges = set()
+        false_path = False
+        for e in path:
+          if e not in visited_vs:
+            false_path = True
+            break
+          if e.length() > 600 and e.eid in long_edges:
+            false_path = True
+            break
+          if e.length() > 600:
+            long_edges.add(e.eid)
+        if false_path:
+          continue
+        best_path = self.path_len(path)
+        best_path = path
+    return (edge.eid, long_end.eid, visited_es, best_path, visited_vs)
   
+  def path_len(self, path):
+    path_len = 0
+    for e in path:
+      path_len += e.length()
+    return path_len
+
   def is_connected(self, vertex, edge, threshold):
     return len(self.get_paths(vertex, edge, threshold, True)) > 0
  

@@ -112,13 +112,28 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
     maxbgraph.check_tips(ingraph.K)
     
     outgraph = maxbgraph.project(output_path, is_sc)
-    maxbgraph.delete_loops(ingraph.K, 1000, 10)
+    edges_before_loop = maxbgraph.delete_loops(ingraph.K, 1000, 10)
     maxbgraph.condense()
     outgraph = maxbgraph.project(output_path, is_sc)
     outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops.fasta"),"w"))
+    to_del = set()
+    for eid in edges_before_loop_DG:
+          if eid in edges_before_loop:
+            to_del.add(eid)
+    print "to_del", len(to_del)
+    for eid in to_del:
+      del edges_before_loop_DG[eid]
     maxbgraph.delete_missing_loops(edges_before_loop_DG, ingraph.K, 1000, 10)
     maxbgraph.condense()
     edges_before_loop_DG = ingraph.find_loops(10, 10000) 
+    edges_before_loop_DG = edges_before_loop_DG or maxbgraph.delete_missing_loops(ingraph.K, 10000,10)
+    to_del = set()
+    for eid in edges_before_loop_DG:
+          if eid in edges_before_loop:
+            to_del.add(eid)
+    print "to_del", len(to_del)
+    for eid in to_del:
+      del edges_before_loop_DG[eid]
     maxbgraph.delete_missing_loops(edges_before_loop_DG, ingraph.K, 10000, 10)
     maxbgraph.condense()
     outgraph = maxbgraph.project(output_path, is_sc)

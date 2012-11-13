@@ -46,7 +46,6 @@ class BEdge(Abstract_Edge):
     (seq1, seq2) = self.get_paired_seq(K, d)
     seq = ''.join(map(lambda x, y: x if x != 'N' else (y if y != 'N' else 'N'), seq1, seq2)).strip('N')
     seq = seq.split(self.get_midle_seq())[1]
-    print seq
     return seq
    
   def get_midle_seq(self):
@@ -257,7 +256,6 @@ class BGraph(Abstract_Graph):
           rect_diag = rectangle.get_closest_diagonal(self.d + first_shift - second_shift) 
           self.add_diagonal_and_conj(rect_diag)
           print "ADD DIAGS", rect_diag
-
           if ed2.len - second_shift < ed1.len - first_shift:
             pos_second_path += 1
             first_shift += ed2.len - second_shift
@@ -500,8 +498,11 @@ class BGraph(Abstract_Graph):
         if found:
           count_loop += 1
           rectangles_before_loop.append([diag.rectangle.e1.eid for diag in be.diagonals])
-          for e in rectangles_before_loop[-1]:
-            edges_before_loop.add(e)
+          for diag in be.diagonals:
+            edges_before_loop.add(diag.rectangle.e1.eid)
+            edges_before_loop.add(diag.rectangle.e2.eid)
+          #for e in rectangles_before_loop[-1]:
+          #  edges_before_loop.add(e)
     for edge in edges_to_delete:
       if edge.eid not in connected_paths and edge.conj.eid not in connected_paths:
         self.__remove_bedge__(edge)
@@ -571,9 +572,7 @@ class BGraph(Abstract_Graph):
       bv.key = bv.key.join_with(key) # transitive closure
     else:
       bv = BVertex(key)
-      #print "new bv", bv.vid
     self.vs[bv.key] = bv
-    #print "vertex", bv.vid
     return bv
 
   def __is_bvertex(self, key):
@@ -588,7 +587,6 @@ class BGraph(Abstract_Graph):
 
   def add_diagonal(self, diag):
     if diag in self.diagonals:
-      #print "already exist"
       return
     be = self.__add_bedge(diag)
     conj = self.__add_bedge(diag.conj) if diag.conj != diag else be
@@ -597,7 +595,6 @@ class BGraph(Abstract_Graph):
     conjugate(be, conj)
     conjugate(be.v1, conj.v2)
     conjugate(be.v2, conj.v1)
-    #print "add diags", be.eid, conj.eid, (be.v1.vid, be.v2.vid), (conj.v1.vid, conj.v2.vid)
     return (be, conj)
     
   def add_diagonal_and_conj(self, diag):
@@ -608,7 +605,6 @@ class BGraph(Abstract_Graph):
     rect = diag.rectangle
     rect_conj = Rectangle(rect.e2.conj, rect.e1.conj)
     conjugate(rect, rect_conj)
-        
     D = diag.D - diag.rectangle.e1.len + diag.rectangle.e2.len       
     pathset = diag.pathset.conj() if experimental.filter == experimental.Filter.pathsets else None
     rect_conj.add_diagonal(self.d, D, pathset)
