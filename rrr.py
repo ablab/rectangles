@@ -102,9 +102,6 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
         bgraph.build_missing_rectangles(ingraph.K, rs)
         bgraph.condense()
         outgraph = bgraph.project(output_path, is_sc)
-        """thisN50 = outgraph.stats(d)
-        if thisN50 > maxN50:"""
-        #maxN50 = thisN50
         maxgraph = outgraph
         maxbgraph = bgraph
         maxthreshold = threshold
@@ -115,38 +112,25 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
     maxbgraph.check_tips(ingraph.K)
     
     outgraph = maxbgraph.project(output_path, is_sc)
-    #outgraph.fasta(open(os.path.join(output_path,"after_tips.fasta"),"w"))
     maxbgraph.delete_loops(ingraph.K, 1000, 10)
     maxbgraph.condense()
     outgraph = maxbgraph.project(output_path, is_sc)
     outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops.fasta"),"w"))
-    #outgraph.save(os.path.join(output_path,"graph_before_missing_loop"))
-    
-    print "lengths of small bushes",len(edges_before_loop_DG.keys()) 
     maxbgraph.delete_missing_loops(edges_before_loop_DG, ingraph.K, 1000, 10)
     maxbgraph.condense()
     edges_before_loop_DG = ingraph.find_loops(10, 10000) 
-    print "length of big bushes", len(edges_before_loop_DG.keys())
     maxbgraph.delete_missing_loops(edges_before_loop_DG, ingraph.K, 10000, 10)
     maxbgraph.condense()
-    """maxbgraph.check_tips(ingraph.K)
-    maxbgraph.condense()
-    maxbgraph.delete_loops(ingraph.K, 1000,10)
-    maxbgraph.condense()"""
     outgraph = maxbgraph.project(output_path, is_sc)
     outgraph.fasta(open(os.path.join(output_path, "after_deleting_big_loops.fasta"), "w"))
-    additional_paired_info = dict()#maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10)
-    should_connect = maxbgraph.path_expand(5000)# or  maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10) 
+    additional_paired_info = dict()
+    should_connect = maxbgraph.edges_expand(5000)
     should_connect_by_first_pair_info = maxbgraph.use_scaffold_paired_info(2 * maxbgraph.d, rs.additional_prd)
     for (e1id, e2id) in should_connect_by_first_pair_info:
       if e1id not in additional_paired_info and maxbgraph.es[e1id].conj.eid not in additional_paired_info and e2id not in additional_paired_info:
         additional_paired_info[e1id] = [maxbgraph.es[e1id], maxbgraph.es[e2id]]
         additional_paired_info[maxbgraph.es[e1id].conj.eid] = [maxbgraph.es[e2id].conj, maxbgraph.es[e1id].conj]
-    #additional_paired_info = dict()
     outgraph.fasta_for_long_contigs(ingraph.K, maxbgraph.d, is_sc, open(os.path.join(output_path,"rectangles_extend.fasta"),"w"), should_connect, additional_paired_info)
-    #maxbgraph.check_begin_ends(ingraph.K, 1000)
-    #should_connect = maxbgraph.use_additional_paired_info(rs.not_used_prd_support, 1000, 10) 
-    #outgraph.fasta(open(os.path.join(output_path,"after_tips_delete_loops_additional_paired_info.fasta"),"w"), should_connect)
     maxbgraph.print_about_edges([20586, 23014, 23806, 19630,23350], ingraph.K)
     outgraph.save(os.path.join(output_path,"last_graph"))
     if genome:  
@@ -190,11 +174,6 @@ def make_rectangles_from_genome(options):
         f_right.write("\n")
         contigs_id += 1
     bgraph = rs.bgraph_from_genome()
-    bgraph.condense()
-    bgraph.check_tips(ingraph.K)
-    bgraph.delete_loops(ingraph.K, 1000, 10)
-    bgraph.condense()
-    bgraph.delete_missing_loops(edges_before_loop_DG, ingraph.K, 1000, 10)
     bgraph.condense()
     outgraph = bgraph.project(options.out_dir, False)
     outgraph.fasta(open(os.path.join(options.out_dir, 'rectangles.fasta'), 'w'))

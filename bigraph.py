@@ -40,10 +40,7 @@ class BEdge(Abstract_Edge):
     (seq1, seq2) = self.get_paired_seq(K, d)
     seq = ''.join(map(lambda x, y: x if x != 'N' else (y if y != 'N' else 'N'), seq1, seq2)).strip('N')
     seq = seq.split(self.get_midle_seq())[0]
-    print seq
     return seq
-   # first = self.diagonals[0]
-    #return first.rectangle.e1.seq[:first.offseta]
    
   def get_end_seq(self, K, d, is_sc):
     (seq1, seq2) = self.get_paired_seq(K, d)
@@ -51,10 +48,6 @@ class BEdge(Abstract_Edge):
     seq = seq.split(self.get_midle_seq())[1]
     print seq
     return seq
-    (seq1, seq2) = self.get_paired_seq(K, d)
-    seq = ''.join(map(lambda x, y: x if x != 'N' else (y if y != 'N' else 'N'), seq1, seq2)).strip('N')
-    last = self.diagonals[-1]
-    return seq[-d:] + last.rectangle.e2.seq[last.offsetd+K:]
    
   def get_midle_seq(self):
     seq = ""
@@ -282,13 +275,11 @@ class BGraph(Abstract_Graph):
             first_shift = 0
             second_shift = 0
 
-  def path_expand(self, L):
+  def edges_expand(self, L):
     should_connect = dict()
     for edge_id, edge in self.es.items():
       if edge.length() > L:
-        self.edge_path_expand(edge, should_connect, L)
-    for edge_id, path in should_connect.items():
-          print "CONNECT PATHS",edge_id, [e.eid for e in path]
+        self.edge_expand(edge, should_connect, L)
     to_delete = set()
     for edge_id, path in should_connect.items():
       if path[-1].eid in should_connect:
@@ -302,91 +293,13 @@ class BGraph(Abstract_Graph):
       while i >= 0:
         conj_path.append(path[i].conj)
         i -= 1
-      #if conj_path[-1].eid not in should_connect and conj_path[0].eid not in should_connect:
       conj_should_connect[path[0].conj.eid] = conj_path
       conj_should_connect[path[0].eid] = path
-
-    """used = set()
-    to_delete = set()
-    for edge_id, path in should_connect.items():
-      for e in [path[0], path[-1]]:
-        if e.eid in used:
-          #to_delete.add(e.eid)
-          to_delete.add(edge_id)
-      for e in path:
-        used.add(e.eid)
-    for eid in to_delete:
-      if eid in should_connect:
-        del should_connect[eid]
-    for edge_id, path in should_connect.items():
-          print "CONNECT PATHS", [e.eid for e in path]"""
-    
-    """for edge_id, path in should_connect.items():
-      if path[-1].eid in should_connect:
-        print "find path", edge_id, path[-1].eid, [e.eid for e in path],[e.eid for e in should_connect[path[-1].eid]]
-        next_path = should_connect[path[-1].eid]
-        del should_connect[path[-1].eid]
-        path += next_path[1:]"""
     for edge_id, path in conj_should_connect.items():
           print "NEW CONNECT PATHS",edge_id, [e.eid for e in path]
-    
     return conj_should_connect
-  
-  def use_additional_paired_info(self, paired_info, L, threshold):
-    should_connect_edges = dict()
-    used_edges = set()
-    for (e1, e2), infos in paired_info.items():
-      if e1.len < L or e2.len < L:
-        continue
-      else:
-        e1_rectangles = set()
-        e2_rectangles = set()
-        for e_id, bes in self.es.items():
-          for diag in bes.diagonals:
-            if diag.rectangle.e1.eid == e1.eid and diag.offseta == 0:
-              e1_rectangles.add(bes)
-              #print diag.rectangle.e1.eid, diag.rectangle.e2.eid
-            elif diag.rectangle.e1.eid == e2.eid and diag.offseta == 0:
-              e2_rectangles.add(bes)
-              #print diag.rectangle.e1.eid, diag.rectangle.e2.eid
-        for be1 in e1_rectangles:
-          for be2 in e2_rectangles:
-            if not self.is_connected(be1.v2, be2, threshold):
-              continue
-            else:
-              paths = self.get_paths(be1.v2, be2, threshold)
-              if len(paths) != 1:
-                continue
-              else:
-                path = paths[0]
-                add_path = True
-                if be1.eid in used_edges or be2.eid in used_edges or be1.conj.eid in used_edges or be2.conj.eid in used_edges:
-                  add_path = False
-                used_edges.add(be1.eid)
-                used_edges.add(be1.conj.eid)
-                used_edges.add(be2.conj.eid)
-                used_edges.add(be2.eid)
-                for e in path:
-                  if e.eid in used_edges:
-                    add_path = False
-                    break
-                  else:
-                    used_edges.add(e.eid)
-                if not add_path:
-                  continue
-                should_connect_edges[be1.eid] = [be1] + path + [be2]
-                conj_path = [e.conj for e in path]
-                conj_path.reverse()
-                should_connect_edges[be1.conj.eid] = [be2.conj] + conj_path + [be1.conj]
-                print "connect", be1.eid, [e.eid for e in should_connect_edges[be1.eid]], be1.conj.eid, [e.eid for e in should_connect_edges[be1.conj.eid]]
-                #should_connect_edges.append([be1] + path + [be2])
-
-    print "CONNECT"
-    for eid, path in should_connect_edges.items():
-      print eid, [e.eid for e in path]
-    return should_connect_edges  
-  
-  def edge_path_expand(self, begin_edge, should_connect, L):
+   
+  def edge_expand(self, begin_edge, should_connect, L):
     second_edges = []
     prev_first = None
     first = begin_edge.diagonals[0].rectangle.e2
@@ -403,9 +316,6 @@ class BGraph(Abstract_Graph):
       return
     v2 = begin_edge.v2
     paths = self.expand(v2, second_edges, first, prev_first, [begin_edge], [])
-    #print "edge", begin_edge.eid, len(paths)
-    #for path in paths:
-    #  print [e.eid for e in path]
     if len(paths) == 1:
       should_add = False
       path = paths[0]
@@ -421,7 +331,6 @@ class BGraph(Abstract_Graph):
     end_edges = []
     for next_edge in v2.out:
       extend = self.can_expand(next_edge, second_edges, first, prev_first) 
-      #print "can_expand", next_edge.eid, second_edges, first.eid, prev_first.eid, extend
       if not extend:
         continue
       if len(extend[1]) == 0 and not extend[2]:
