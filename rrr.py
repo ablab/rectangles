@@ -166,7 +166,7 @@ def parser_options():
     parser.add_option("-d", "--debug-logger", dest = "debug_logger", help = "File for debug logger", default = "debug_log.txt")
     parser.add_option("-k", "--k", type = int, dest = "k", help = "k")
     parser.add_option("-D", "--D", type = int, dest="d", help = "d")
-    parser.add_option("-c", "--sc", dest = "sc", help = " true if data is sc fasle in other case", default = None) 
+    parser.add_option("-c", "--sc", dest = "sc", help = "true if data is sincle-cell, default = false.", default = None)
     return parser
 
 def make_rectangles_from_genome(options):
@@ -178,8 +178,8 @@ def make_rectangles_from_genome(options):
     ingraph.save(os.path.join(options.out_dir,"graph"))
     rs = RectangleSet(ingraph, int(options.d))
     rs.filter_without_prd()
-    f_left = open(os.path.join(options.out_dir, "paired_genom_contigs_1.fasta"),"w")
-    f_right = open(os.path.join(options.out_dir, "paired_genom_contigs_2.fasta"),"w")
+    f_left = open(os.path.join(options.out_dir, "paired_genom_contigs_1.fasta"),"w") # TODO: what is it?
+    f_right = open(os.path.join(options.out_dir, "paired_genom_contigs_2.fasta"),"w") # TODO: what is it?
     contigs_id = 0
     for key, rect in rs.rectangles.items():
       for key, diag in rect.diagonals.items():
