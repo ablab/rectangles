@@ -161,7 +161,7 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
 def parser_options():
     parser = OptionParser()
     parser.add_option("-s", "", dest="saves_dir", help="Name of directory with saves")
-    parser.add_option("-o", "", dest="out_dir", help = "Output directory", default = "out")
+    parser.add_option("-o", "", dest="out_dir", help = "Output directory, default = out (optional)", default = "out")
     parser.add_option("-g", "", dest ="genome", help = "File with genome (optional)") 
     parser.add_option("-d", "", dest = "debug_logger", help = "File for debug logger (optional)", default = "debug_log.txt")
     parser.add_option("-k", "", type = int, dest = "k", help = "k (optional)")
