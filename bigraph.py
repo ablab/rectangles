@@ -56,7 +56,7 @@ class BEdge(Abstract_Edge):
 
   def get_seq_for_contig(self, K, d, is_sc):
     if is_sc:
-      CUT_THRESHOLD = 2.0 #TODO: should take from histogram  
+      CUT_THRESHOLD = 2.0 #TODO: should take from histogram!!!!  
       CUT_LENGTH_THRESHOLD = 5.0
       MIN_LENGTH = 4 * d
     else:
