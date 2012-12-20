@@ -1,4 +1,4 @@
-#!usr/bin/python
+#!/usr/bin/python
 
 ###########################################################################################
 ###
@@ -160,13 +160,13 @@ def resolve(input_path, output_path, test_utils, genome, is_sc):
 
 def parser_options():
     parser = OptionParser()
-    parser.add_option("-g", "--genome", dest ="genome", help = "File with genome") 
-    parser.add_option("-s", "--saves", dest="saves_dir", help="Name of directory with saves")
-    parser.add_option("-o", "--out", dest="out_dir", help = "output folder", default = "out")
-    parser.add_option("-d", "--debug-logger", dest = "debug_logger", help = "File for debug logger", default = "debug_log.txt")
-    parser.add_option("-k", "--k", type = int, dest = "k", help = "k")
-    parser.add_option("-D", "--D", type = int, dest="d", help = "d")
-    parser.add_option("-c", "--sc", dest = "sc", help = " true if data is sc fasle in other case", default = None) 
+    parser.add_option("-s", "", dest="saves_dir", help="Name of directory with saves")
+    parser.add_option("-o", "", dest="out_dir", help = "Output directory, default = out (optional)", default = "out")
+    parser.add_option("-g", "", dest ="genome", help = "File with genome (optional)") 
+    parser.add_option("-d", "", dest = "debug_logger", help = "File for debug logger (optional)", default = "debug_log.txt")
+    parser.add_option("-k", "", type = int, dest = "k", help = "k (optional)")
+    parser.add_option("-D", "", type = int, dest="d", help = "d (optional)")
+    parser.add_option("", "--sc", dest = "sc", action="store_true", help = "Turn on if data is sincle-cell (optional)", default = False)
     return parser
 
 def make_rectangles_from_genome(options):
@@ -178,8 +178,8 @@ def make_rectangles_from_genome(options):
     ingraph.save(os.path.join(options.out_dir,"graph"))
     rs = RectangleSet(ingraph, int(options.d))
     rs.filter_without_prd()
-    f_left = open(os.path.join(options.out_dir, "paired_genom_contigs_1.fasta"),"w")
-    f_right = open(os.path.join(options.out_dir, "paired_genom_contigs_2.fasta"),"w")
+    f_left = open(os.path.join(options.out_dir, "paired_genom_contigs_1.fasta"),"w") # TODO: what is it?
+    f_right = open(os.path.join(options.out_dir, "paired_genom_contigs_2.fasta"),"w") # TODO: what is it?
     contigs_id = 0
     for key, rect in rs.rectangles.items():
       for key, diag in rect.diagonals.items():
@@ -211,11 +211,11 @@ if __name__ == '__main__':
     if options.genome and not options.saves_dir:  
       if not options.k or not options.d:
         print "specify k and d"
-        exit(1)
+        sys.exit(1)
       make_rectangles_from_genome(options)
-      exit(1)
+      sys.exit(1)
 
-    if len(args) != 0 or not options.sc:
+    if not options.saves_dir:
       parser.print_help()
       sys.exit(0)
     
@@ -223,15 +223,7 @@ if __name__ == '__main__':
     outpath = options.out_dir
     reference_information_file = os.path.join(input_dir,"late_pair_info_counted_etalon_distance.txt")
     test_util = TestUtils(reference_information_file, os.path.join(outpath, options.debug_logger))
-    sc = False
-    if options.sc == "True" or options.sc == "true":
-      sc = True
-    elif options.sc == "False" or options.sc == "false":
-      sc = False
-    else:
-      parser.print_help()
-      sys.exit(0)
-    resolve(input_dir, outpath, test_util, options.genome, sc)
+    resolve(input_dir, outpath, test_util, options.genome, options.sc)
     
     if test_util.has_ref_info:
       test_util.stat()
